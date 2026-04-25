@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#5B4A3F">
+<title>Icelandic Horse Feed Calculator</title>
+<!-- Icelandic horses are easy keepers: lower baseline intake (1.5-1.8% BW vs typical 2%) -->
+<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiSWNlbGFuZGljIEhvcnNlIEZlZWQgQ2FsY3VsYXRvciIsInNob3J0X25hbWUiOiJGZWVkQ2FsYyIsInN0YXJ0X3VybCI6Ii4iLCJkaXNwbGF5Ijoic3RhbmRhbG9uZSIsImJhY2tncm91bmRfY29sb3IiOiIjRjVGMEVCIiwidGhlbWVfY29sb3IiOiIjNUI0QTNGIiwiaWNvbnMiOlt7InNyYyI6ImRhdGE6aW1hZ2Uvc3ZnK3htbCw8c3ZnIHhtbG5zPSdodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2Zycgdmlld0JveD0nMCAwIDEwMCAxMDAnPjxyZWN0IHdpZHRoPScxMDAnIGhlaWdodD0nMTAwJyByeD0nMjAnIGZpbGw9JyM1QjRBM0YnLz48dGV4dCB4PSc1MCcgeT0nNjUnIGZvbnQtc2l6ZT0nNTAnIHRleHQtYW5jaG9yPSdtaWRkbGUnIGZpbGw9J3doaXRlJz7wn5GRPC90ZXh0Pjwvc3ZnPiIsInNpemVzIjoiYW55IiwidHlwZSI6ImltYWdlL3N2Zyt4bWwifV19">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+--bg:#F5F0EB;--card:#FFFFFF;--primary:#5B4A3F;--primary-light:#7D6B5D;
+--accent:#8B6914;--accent-light:#C4A24E;--text:#3A3A3A;--text-light:#7A7A7A;
+--border:#E0D8D0;--success:#4A7C59;--warn:#B8860B;--danger:#A0522D;
+--shadow:0 2px 8px rgba(91,74,63,.12);--radius:12px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.5;padding-bottom:80px}
+header{background:linear-gradient(135deg,var(--primary),var(--primary-light));color:#fff;padding:16px 20px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.15)}
+header h1{font-size:1.2rem;font-weight:700;display:flex;align-items:center;gap:8px}
+header h1 span{font-size:1.4rem}
+.tabs{display:flex;background:var(--card);border-bottom:2px solid var(--border);position:sticky;top:56px;z-index:99;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tab{flex:1;min-width:0;padding:12px 8px;text-align:center;font-size:.82rem;font-weight:600;color:var(--text-light);border:none;background:none;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;transition:all .2s}
+.tab.active{color:var(--primary);border-bottom-color:var(--accent)}
+.tab-panel{display:none;padding:16px}.tab-panel.active{display:block}
+.card{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:var(--shadow)}
+.card h3{font-size:1rem;color:var(--primary);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.badge{display:inline-block;font-size:.65rem;padding:2px 8px;border-radius:20px;font-weight:600;margin:2px}
+.badge-warn{background:#FFF3CD;color:#856404}.badge-info{background:#D1ECF1;color:#0C5460}.badge-danger{background:#F8D7DA;color:#721C24}
+label{display:block;font-size:.8rem;font-weight:600;color:var(--text-light);margin:8px 0 4px}
+input[type=number],input[type=text],select{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.9rem;background:var(--bg);transition:border .2s}
+input:focus,select:focus{outline:none;border-color:var(--accent)}
+.row{display:flex;gap:12px;flex-wrap:wrap}.row>*{flex:1;min-width:120px}
+.feed-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)}
+.feed-row:last-child{border:none}
+.feed-name{flex:1;font-size:.85rem;font-weight:500}
+.feed-input{width:70px;text-align:center;padding:6px 4px;font-size:.85rem}
+.feed-unit{font-size:.75rem;color:var(--text-light);width:24px}
+.supp-row{display:flex;align-items:center;gap:8px;padding:6px 0}
+.supp-toggle{width:44px;height:24px;background:var(--border);border-radius:12px;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0}
+.supp-toggle.on{background:var(--success)}
+.supp-toggle::after{content:'';width:20px;height:20px;background:#fff;border-radius:50%;position:absolute;top:2px;left:2px;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.supp-toggle.on::after{transform:translateX(20px)}
+.supp-name{flex:1;font-size:.85rem}.supp-dose{width:80px}
+.total-bar{background:linear-gradient(135deg,var(--primary),var(--primary-light));color:#fff;border-radius:var(--radius);padding:14px 16px;margin-top:8px;display:flex;justify-content:space-between;align-items:center}
+.total-bar .lbl{font-size:.75rem;opacity:.8}.total-bar .val{font-size:1.3rem;font-weight:700}
+.alert-box{padding:10px 14px;border-radius:8px;font-size:.8rem;margin-bottom:8px;display:flex;align-items:flex-start;gap:8px}
+.alert-box.warn{background:#FFF8E1;border-left:3px solid var(--warn);color:#795600}
+.alert-box.info{background:#E8F4FD;border-left:3px solid #2196F3;color:#0D47A1}
+.btn{padding:10px 20px;border:none;border-radius:8px;font-size:.85rem;font-weight:600;cursor:pointer;transition:all .2s}
+.btn-primary{background:var(--primary);color:#fff}.btn-primary:active{background:var(--primary-light)}
+.btn-outline{background:none;border:1.5px solid var(--primary);color:var(--primary)}
+.btn-sm{padding:6px 14px;font-size:.78rem}
+.btn-danger{background:var(--danger);color:#fff}
+.log-entry{padding:10px;border-bottom:1px solid var(--border);font-size:.85rem}
+.log-date{font-weight:600;color:var(--primary)}
+.grand-total{background:linear-gradient(135deg,var(--accent),var(--accent-light));color:#fff;border-radius:var(--radius);padding:16px;text-align:center;margin-top:12px}
+.grand-total .val{font-size:1.8rem;font-weight:800}
+.chart-wrap{background:var(--card);border-radius:var(--radius);padding:12px;margin-top:12px;box-shadow:var(--shadow)}
+canvas{width:100%;height:200px}
+.empty-state{text-align:center;padding:40px 20px;color:var(--text-light);font-size:.9rem}
+.horse-select{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.horse-chip{padding:6px 14px;border-radius:20px;font-size:.8rem;font-weight:600;border:1.5px solid var(--border);cursor:pointer;transition:all .2s;background:var(--card)}
+.horse-chip.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.section-title{font-size:.75rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-light);margin:16px 0 8px;font-weight:700}
+.flex-end{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
+.pct-bar{height:6px;background:var(--border);border-radius:3px;margin-top:4px;overflow:hidden}
+.pct-fill{height:100%;border-radius:3px;transition:width .3s}
+@media(max-width:400px){.feed-input{width:56px}.row>*{min-width:100px}}
+</style>
+</head>
+<body>
+<header><h1><span>🐴</span> Icelandic Horse Feed Calculator</h1></header>
+<div class="tabs" id="tabs">
+<button class="tab active" data-tab="calculator">🧮 Calculator</button>
+<button class="tab" data-tab="summary">📊 Summary</button>
+<button class="tab" data-tab="logs">📋 Logs</button>
+<button class="tab" data-tab="trends">📈 Trends</button>
+<button class="tab" data-tab="settings">⚙️ Settings</button>
+</div>
+
+<div class="tab-panel active" id="panel-calculator"></div>
+<div class="tab-panel" id="panel-summary"></div>
+<div class="tab-panel" id="panel-logs"></div>
+<div class="tab-panel" id="panel-trends"></div>
+<div class="tab-panel" id="panel-settings"></div>
+
+<script>
+'use strict';
+const FEED_TYPES=['Free roaming pasture','Timothy hay','Alfalfa hay','Soaked timothy cubes','Soaked teff cubes','Soaked alfalfa cubes','Haystack special blend pellets','Soaked beet pulps'];
+const SHARED_SUPPS=['Triple Crown Balanced Gold','Amino Trace+','Daily Red Fortified','Digest 911','Turmeric for Horse'];
+const TENOR_SUPPS=['Purina Super Sport Supplement','Assured Gut Gold','Senior Weight Accelerator','Health-E Maximum Strength Vitamin E'];
+const CONDITIONS=['PSSM','Insulin Resistance','Teeth Problem','Digestive Sensitive','Overweight','Hoof Care'];
+const COND_TIPS={
+'PSSM':{icon:'⚠️',text:'Low starch/sugar, increase fat sources. Avoid sweet feeds.',class:'warn'},
+'Insulin Resistance':{icon:'⚠️',text:'Limit alfalfa & sugary feeds. Prefer teff cubes. Icelandic horses are prone to IR — monitor weight closely.',class:'warn'},
+'Teeth Problem':{icon:'🦷',text:'Use more soaked cubes, reduce long-stem hay.',class:'info'},
+'Digestive Sensitive':{icon:'💚',text:'Feed smaller, more frequent meals throughout the day.',class:'info'},
+'Overweight':{icon:'📉',text:'Reduce total daily intake toward 1.2-1.5% BW. Icelandic horses are easy keepers — less is more.',class:'warn'},
+'Hoof Care':{icon:'🐾',text:'Ensure adequate biotin, zinc, and methionine via supplements.',class:'info'}
+};
+
+const DEFAULT_HORSES=[
+{id:'tenor',name:'Tenor',weight:700,conditions:['PSSM','Teeth Problem','Digestive Sensitive','Hoof Care'],issenior:true,feeds:{},supps:{}},
+{id:'odinn',name:'Odinn',weight:700,conditions:['Digestive Sensitive'],issenior:false,feeds:{},supps:{}},
+{id:'uffie',name:'Uffie',weight:800,conditions:['Digestive Sensitive'],issenior:false,feeds:{},supps:{}},
+{id:'spoi',name:'Spoi',weight:950,conditions:['Insulin Resistance','Overweight'],issenior:false,feeds:{},supps:{}}
+];
+
+let horses=JSON.parse(localStorage.getItem('fc_horses'))||JSON.parse(JSON.stringify(DEFAULT_HORSES));
+let currentHorse=0;
+function save(){localStorage.setItem('fc_horses',JSON.stringify(horses))}
+function getSupps(h){let s=[...SHARED_SUPPS];if(h.id==='tenor')s.push(...TENOR_SUPPS);return s}
+// Icelandic horses are easy keepers — baseline 1.5-1.8% BW (lower than typical horses)
+function targetRange(h){let lo=h.conditions.includes('Overweight')?1.2:1.5,hi=h.conditions.includes('Overweight')?1.5:1.8;return[lo*h.weight/100,hi*h.weight/100]}
+function totalFeed(h){return Object.values(h.feeds||{}).reduce((s,v)=>s+(parseFloat(v)||0),0)}
+
+// Tabs
+document.getElementById('tabs').addEventListener('click',e=>{
+const t=e.target.closest('.tab');if(!t)return;
+document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+document.querySelectorAll('.tab-panel').forEach(x=>x.classList.remove('active'));
+t.classList.add('active');
+document.getElementById('panel-'+t.dataset.tab).classList.add('active');
+render(t.dataset.tab);
+});
+
+function render(tab){
+({calculator:renderCalc,summary:renderSummary,logs:renderLogs,trends:renderTrends,settings:renderSettings})[tab]();
+}
+
+function renderCalc(){
+const p=document.getElementById('panel-calculator');
+let html='<div class="horse-select">';
+horses.forEach((h,i)=>{html+=`<div class="horse-chip ${i===currentHorse?'active':''}" onclick="currentHorse=${i};renderCalc()">${h.name}</div>`});
+html+='</div>';
+const h=horses[currentHorse];
+const[lo,hi]=targetRange(h);
+const tot=totalFeed(h);
+const pct=hi>0?Math.min(tot/hi*100,150):0;
+const color=tot<lo?'var(--warn)':tot>hi?'var(--danger)':'var(--success)';
+
+// Condition alerts
+if(h.conditions.length){
+html+='<div class="section-title">Health Alerts</div>';
+h.conditions.forEach(c=>{const t=COND_TIPS[c];if(t)html+=`<div class="alert-box ${t.class}">${t.icon} <span><strong>${c}:</strong> ${t.text}</span></div>`});
+}
+
+// Feed section
+html+='<div class="section-title">Daily Feed (lbs)</div><div class="card">';
+FEED_TYPES.forEach(f=>{
+const v=h.feeds[f]||'';
+const flagged=(f==='Alfalfa hay'&&h.conditions.includes('Insulin Resistance'));
+html+=`<div class="feed-row">
+<span class="feed-name">${f}${flagged?' ⚠️':''}</span>
+<input type="number" class="feed-input" min="0" step="0.5" value="${v}" data-feed="${f}" placeholder="0">
+<span class="feed-unit">lb</span></div>`;
+});
+html+=`</div>`;
+
+// Total bar
+html+=`<div class="total-bar"><div><div class="lbl">Daily Total</div><div class="val">${tot.toFixed(1)} lb</div></div><div style="text-align:right"><div class="lbl">Target ${lo.toFixed(0)}-${hi.toFixed(0)} lb</div><div class="pct-bar" style="width:100px"><div class="pct-fill" style="width:${Math.min(pct,100)}%;background:${color}"></div></div></div></div>`;
+
+// Supplements
+html+='<div class="section-title">Supplements</div><div class="card">';
+getSupps(h).forEach(s=>{
+const on=h.supps[s]&&h.supps[s].on;
+const dose=h.supps[s]?h.supps[s].dose:'';
+html+=`<div class="supp-row">
+<div class="supp-toggle ${on?'on':''}" data-supp="${s}"></div>
+<span class="supp-name">${s}</span>
+<input type="text" class="supp-dose feed-input" style="width:70px" placeholder="dose" value="${dose||''}" data-suppdose="${s}" ${on?'':'disabled'}>
+</div>`;
+});
+html+='</div>';
+html+='<div class="flex-end"><button class="btn btn-primary" onclick="saveLog()">💾 Save Today\'s Log</button></div>';
+p.innerHTML=html;
+
+// Events
+p.querySelectorAll('[data-feed]').forEach(el=>el.addEventListener('input',e=>{
+h.feeds[e.target.dataset.feed]=e.target.value;save();
+// Update total bar inline
+const newTot=totalFeed(h);
+const bar=p.querySelector('.total-bar .val');if(bar)bar.textContent=newTot.toFixed(1)+' lb';
+const fill=p.querySelector('.pct-fill');
+if(fill){const np=Math.min(newTot/hi*100,100);fill.style.width=np+'%';fill.style.background=newTot<lo?'var(--warn)':newTot>hi?'var(--danger)':'var(--success)'}
+}));
+p.querySelectorAll('.supp-toggle').forEach(el=>el.addEventListener('click',e=>{
+const s=el.dataset.supp;
+if(!h.supps[s])h.supps[s]={on:false,dose:''};
+h.supps[s].on=!h.supps[s].on;save();renderCalc();
+}));
+p.querySelectorAll('[data-suppdose]').forEach(el=>el.addEventListener('input',e=>{
+const s=e.target.dataset.suppdose;
+if(!h.supps[s])h.supps[s]={on:true,dose:''};
+h.supps[s].dose=e.target.value;save();
+}));
+}
+
+function renderSummary(){
+const p=document.getElementById('panel-summary');
+let html='<div class="section-title">Daily Summary</div>';
+let grandTotal=0;
+horses.forEach(h=>{
+const tot=totalFeed(h);grandTotal+=tot;
+const[lo,hi]=targetRange(h);
+const status=tot<lo?'🔻 Under':tot>hi?'🔺 Over':'✅ Good';
+html+=`<div class="card"><h3>🐴 ${h.name} <span style="font-size:.75rem;color:var(--text-light)">${h.weight} lb</span></h3>`;
+h.conditions.forEach(c=>html+=`<span class="badge ${c==='PSSM'||c==='Insulin Resistance'||c==='Overweight'?'badge-warn':'badge-info'}">${c}</span>`);
+html+=`<div style="margin-top:10px">`;
+FEED_TYPES.forEach(f=>{const v=parseFloat(h.feeds[f])||0;if(v>0)html+=`<div class="feed-row"><span class="feed-name">${f}</span><span style="font-weight:600">${v.toFixed(1)} lb</span></div>`});
+const activeSupps=getSupps(h).filter(s=>h.supps[s]&&h.supps[s].on);
+if(activeSupps.length){html+='<div style="margin-top:8px;font-size:.78rem;color:var(--text-light)"><strong>Supplements:</strong> '+activeSupps.map(s=>s+(h.supps[s].dose?' ('+h.supps[s].dose+')':'')).join(', ')+'</div>'}
+html+=`</div><div class="total-bar" style="margin-top:10px"><div><div class="lbl">Total</div><div class="val">${tot.toFixed(1)} lb</div></div><div style="text-align:right"><div class="lbl">${status}</div><div class="lbl">${(tot/h.weight*100).toFixed(1)}% BW</div></div></div></div>`;
+});
+html+=`<div class="grand-total"><div class="lbl">Grand Total (All Horses)</div><div class="val">${grandTotal.toFixed(1)} lb</div></div>`;
+p.innerHTML=html;
+}
+
+function saveLog(){
+const logs=JSON.parse(localStorage.getItem('fc_logs')||'[]');
+const today=new Date().toISOString().slice(0,10);
+const entry={date:today,timestamp:Date.now(),horses:JSON.parse(JSON.stringify(horses))};
+const idx=logs.findIndex(l=>l.date===today);
+if(idx>=0)logs[idx]=entry;else logs.unshift(entry);
+localStorage.setItem('fc_logs',JSON.stringify(logs));
+alert('Log saved for '+today);
+}
+
+function renderLogs(){
+const p=document.getElementById('panel-logs');
+const logs=JSON.parse(localStorage.getItem('fc_logs')||'[]');
+if(!logs.length){p.innerHTML='<div class="empty-state">📋<br>No logs yet.<br>Save your first log from the Calculator tab.</div>';return}
+let html='<div class="section-title">Saved Logs</div>';
+logs.slice(0,30).forEach((l,i)=>{
+const gt=l.horses.reduce((s,h)=>s+Object.values(h.feeds||{}).reduce((a,v)=>a+(parseFloat(v)||0),0),0);
+html+=`<div class="card" style="cursor:pointer" onclick="loadLog(${i})"><div style="display:flex;justify-content:space-between;align-items:center"><div><span class="log-date">${l.date}</span><br><span style="font-size:.78rem;color:var(--text-light)">${l.horses.map(h=>h.name+': '+Object.values(h.feeds||{}).reduce((a,v)=>a+(parseFloat(v)||0),0).toFixed(1)+'lb').join(' · ')}</span></div><div style="text-align:right"><div style="font-weight:700;color:var(--primary)">${gt.toFixed(1)} lb</div><button class="btn btn-sm btn-outline" onclick="event.stopPropagation();deleteLog(${i})">🗑</button></div></div></div>`;
+});
+p.innerHTML=html;
+}
+
+function loadLog(i){
+const logs=JSON.parse(localStorage.getItem('fc_logs')||'[]');
+if(!logs[i])return;
+if(!confirm('Load log from '+logs[i].date+'? This will replace current feed data.'))return;
+horses=JSON.parse(JSON.stringify(logs[i].horses));save();
+document.querySelector('[data-tab="calculator"]').click();
+}
+function deleteLog(i){
+const logs=JSON.parse(localStorage.getItem('fc_logs')||'[]');
+if(!confirm('Delete log from '+logs[i].date+'?'))return;
+logs.splice(i,1);localStorage.setItem('fc_logs',JSON.stringify(logs));renderLogs();
+}
+
+function renderTrends(){
+const p=document.getElementById('panel-trends');
+const logs=JSON.parse(localStorage.getItem('fc_logs')||'[]');
+if(logs.length<2){p.innerHTML='<div class="empty-state">📈<br>Need at least 2 saved logs to show trends.<br>Keep logging daily!</div>';return}
+let html='<div class="section-title">Feed Trends</div>';
+html+='<div class="horse-select" id="trend-chips"></div>';
+html+='<div class="chart-wrap"><canvas id="trendChart" height="200"></canvas></div>';
+html+='<div class="section-title" style="margin-top:16px">Weight Trends</div>';
+html+='<div class="chart-wrap"><canvas id="weightChart" height="200"></canvas></div>';
+p.innerHTML=html;
+
+const chips=document.getElementById('trend-chips');
+horses.forEach((h,i)=>{
+const ch=document.createElement('div');ch.className='horse-chip'+(i===0?' active':'');ch.textContent=h.name;
+ch.onclick=()=>{chips.querySelectorAll('.horse-chip').forEach(x=>x.classList.remove('active'));ch.classList.add('active');drawCharts(i,logs)};
+chips.appendChild(ch);
+});
+drawCharts(0,logs);
+}
+
+function drawCharts(hi,logs){
+const sorted=[...logs].sort((a,b)=>a.date.localeCompare(b.date)).slice(-30);
+// Feed chart
+const fc=document.getElementById('trendChart');const ctx=fc.getContext('2d');
+const W=fc.parentElement.clientWidth-24;fc.width=W*2;fc.height=400;fc.style.height='200px';
+ctx.scale(2,2);const cw=W,ch=200;
+ctx.clearRect(0,0,cw,ch);
+const vals=sorted.map(l=>{const h=l.horses[hi];return h?Object.values(h.feeds||{}).reduce((s,v)=>s+(parseFloat(v)||0),0):0});
+const maxV=Math.max(...vals,1)*1.2;
+const pad={t:20,b:30,l:40,r:10};const gw=cw-pad.l-pad.r;const gh=ch-pad.t-pad.b;
+// Grid
+ctx.strokeStyle='#E0D8D0';ctx.lineWidth=.5;ctx.font='10px sans-serif';ctx.fillStyle='#999';
+for(let i=0;i<=4;i++){const y=pad.t+gh-gh*(i/4);ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(cw-pad.r,y);ctx.stroke();ctx.fillText((maxV*i/4).toFixed(1),2,y+3)}
+// Line
+ctx.beginPath();ctx.strokeStyle='#5B4A3F';ctx.lineWidth=2;
+vals.forEach((v,i)=>{const x=pad.l+i*(gw/(vals.length-1||1));const y=pad.t+gh-gh*(v/maxV);i===0?ctx.moveTo(x,y):ctx.lineTo(x,y)});ctx.stroke();
+// Dots
+vals.forEach((v,i)=>{const x=pad.l+i*(gw/(vals.length-1||1));const y=pad.t+gh-gh*(v/maxV);ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);ctx.fillStyle='#5B4A3F';ctx.fill();ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x,y,2,0,Math.PI*2);ctx.fill()});
+// Labels
+ctx.fillStyle='#999';ctx.font='9px sans-serif';ctx.textAlign='center';
+sorted.forEach((l,i)=>{if(sorted.length<=10||i%Math.ceil(sorted.length/8)===0){const x=pad.l+i*(gw/(vals.length-1||1));ctx.fillText(l.date.slice(5),x,ch-5)}});
+ctx.textAlign='start';
+ctx.fillStyle='var(--text-light)';ctx.font='11px sans-serif';ctx.fillText('Daily Feed (lb)',pad.l,12);
+
+// Weight chart
+const wc=document.getElementById('weightChart');const wctx=wc.getContext('2d');
+wc.width=W*2;wc.height=400;wc.style.height='200px';wctx.scale(2,2);
+wctx.clearRect(0,0,cw,ch);
+const wvals=sorted.map(l=>{const h=l.horses[hi];return h?h.weight:0});
+const wmin=Math.min(...wvals)*0.95;const wmax=Math.max(...wvals)*1.05;const wr=wmax-wmin||1;
+wctx.strokeStyle='#E0D8D0';wctx.lineWidth=.5;wctx.font='10px sans-serif';wctx.fillStyle='#999';
+for(let i=0;i<=4;i++){const y=pad.t+gh-gh*(i/4);wctx.beginPath();wctx.moveTo(pad.l,y);wctx.lineTo(cw-pad.r,y);wctx.stroke();wctx.fillText((wmin+wr*i/4).toFixed(0),2,y+3)}
+wctx.beginPath();wctx.strokeStyle='#4A7C59';wctx.lineWidth=2;
+wvals.forEach((v,i)=>{const x=pad.l+i*(gw/(wvals.length-1||1));const y=pad.t+gh-gh*((v-wmin)/wr);i===0?wctx.moveTo(x,y):wctx.lineTo(x,y)});wctx.stroke();
+wvals.forEach((v,i)=>{const x=pad.l+i*(gw/(wvals.length-1||1));const y=pad.t+gh-gh*((v-wmin)/wr);wctx.beginPath();wctx.arc(x,y,4,0,Math.PI*2);wctx.fillStyle='#4A7C59';wctx.fill();wctx.fillStyle='#fff';wctx.beginPath();wctx.arc(x,y,2,0,Math.PI*2);wctx.fill()});
+wctx.fillStyle='#999';wctx.font='9px sans-serif';wctx.textAlign='center';
+sorted.forEach((l,i)=>{if(sorted.length<=10||i%Math.ceil(sorted.length/8)===0){const x=pad.l+i*(gw/(wvals.length-1||1));wctx.fillText(l.date.slice(5),x,ch-5)}});
+wctx.textAlign='start';wctx.fillStyle='var(--text-light)';wctx.font='11px sans-serif';wctx.fillText('Weight (lb)',pad.l,12);
+}
+
+function renderSettings(){
+const p=document.getElementById('panel-settings');
+let html='<div class="section-title">Horse Profiles</div>';
+horses.forEach((h,i)=>{
+html+=`<div class="card"><h3>🐴 ${h.name}</h3>
+<div class="row"><div><label>Name</label><input type="text" value="${h.name}" onchange="horses[${i}].name=this.value;save()"></div>
+<div><label>Weight (lb)</label><input type="number" value="${h.weight}" min="100" step="10" onchange="horses[${i}].weight=+this.value;save()"></div></div>
+<label>Conditions</label><div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">`;
+CONDITIONS.forEach(c=>{
+const on=h.conditions.includes(c);
+html+=`<span class="badge ${on?'badge-danger':'badge-info'}" style="cursor:pointer" onclick="toggleCond(${i},'${c}')">${on?'✓ ':''} ${c}</span>`;
+});
+html+=`</div></div>`;
+});
+html+=`<div class="flex-end" style="margin-top:16px"><button class="btn btn-outline" onclick="resetData()">🔄 Reset to Defaults</button><button class="btn btn-danger" onclick="clearAllData()">🗑 Clear All Data</button></div>`;
+p.innerHTML=html;
+}
+function toggleCond(i,c){
+const idx=horses[i].conditions.indexOf(c);
+if(idx>=0)horses[i].conditions.splice(idx,1);else horses[i].conditions.push(c);
+save();renderSettings();
+}
+function resetData(){if(!confirm('Reset all horses to defaults?'))return;horses=JSON.parse(JSON.stringify(DEFAULT_HORSES));save();renderSettings()}
+function clearAllData(){if(!confirm('Clear ALL data including logs?'))return;localStorage.removeItem('fc_horses');localStorage.removeItem('fc_logs');horses=JSON.parse(JSON.stringify(DEFAULT_HORSES));save();renderSettings()}
+
+// Init
+renderCalc();
+
+// Service Worker registration (inline)
+if('serviceWorker' in navigator){
+const swCode=`self.addEventListener('install',e=>self.skipWaiting());self.addEventListener('activate',e=>self.clients.claim());self.addEventListener('fetch',e=>e.respondWith(fetch(e.request).catch(()=>caches.match(e.request))));`;
+const blob=new Blob([swCode],{type:'application/javascript'});
+navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(()=>{});
+}
+</script>
+</body>
+</html>
