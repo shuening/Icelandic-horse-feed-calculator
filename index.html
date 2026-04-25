@@ -476,6 +476,13 @@ const h=state.horses[selectedHorse];
 if(!h){el.innerHTML='';return;}
 const supps=getSuppsForHorse(h);
 let html=horseTabs(selectedHorse);
+// Interaction warnings — show at top
+const activeIds=supps.filter(s=>{const st=getSuppState(h.id,s.id);return st!==null?st.active:s.recommended}).map(s=>s.id);
+SUPP_INTERACTIONS.forEach(inter=>{
+if(inter.supps.every(sid=>activeIds.includes(sid))){
+html+=`<div style="background:#fff3e0;border:1.5px solid var(--warning);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:13px;color:#7a4a00;display:flex;align-items:flex-start;gap:8px"><span style="font-size:18px;flex-shrink:0">⚠️</span><div>${inter.message}</div></div>`;
+}
+});
 html+='<div class="card">';
 // Separate recommended vs other
 const recSupps=supps.filter(s=>s.recommended);
@@ -500,13 +507,6 @@ if(otherSupps.length){
 html+='<div style="font-size:12px;font-weight:700;color:var(--text-light);margin:12px 0 6px;text-transform:uppercase;letter-spacing:.5px">Other Supplements</div>';
 otherSupps.forEach(renderSuppRow);
 }
-// Interaction warnings
-const activeIds=supps.filter(s=>{const st=getSuppState(h.id,s.id);return st!==null?st.active:s.recommended}).map(s=>s.id);
-SUPP_INTERACTIONS.forEach(inter=>{
-if(inter.supps.every(sid=>activeIds.includes(sid))){
-html+=`<div style="background:#fff3e0;border:1.5px solid var(--warning);border-radius:8px;padding:10px 12px;margin-top:10px;font-size:13px;color:#7a4a00;display:flex;align-items:flex-start;gap:8px"><span style="font-size:18px;flex-shrink:0">⚠️</span><div>${inter.message}</div></div>`;
-}
-});
 html+='</div>';
 el.innerHTML=html;
 el.querySelectorAll('.horse-tab').forEach(t=>t.addEventListener('click',e=>{
