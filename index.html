@@ -293,9 +293,11 @@ return total;
 // ── Supplements ──
 function getSuppsForHorse(h){
 let supps=BASE_SUPPS.map(s=>({...s,recommended:true}));
-if(h.id==='tenor'||h.conditions.includes('pssm')){
-TENOR_SUPPS.forEach(s=>supps.push({...s,recommended:true}));
-}
+// Show all supps for all horses; Tenor-specific ones default on for Tenor, off for others
+TENOR_SUPPS.forEach(s=>{
+const isRecommended=(h.id==='tenor'||h.conditions.includes('pssm'));
+supps.push({...s,recommended:isRecommended});
+});
 return supps;
 }
 function getSuppState(horseId,suppId){
@@ -422,7 +424,7 @@ const dose=st!==null&&st.dose!==undefined?st.dose:s.dose;
 const highlight=s.digestiveRec&&h.conditions.includes('digestive');
 html+=`<div class="supp-row${highlight?' style="background:#f0faf0"':''}">
 <label class="supp-toggle"><input type="checkbox" ${active?'checked':''} onchange="toggleSupp('${h.id}','${s.id}',this.checked,${dose})"><span class="slider"></span></label>
-<div class="supp-info"><div class="name">${s.name}</div><div class="desc">${s.desc}${highlight?' ⭐ Recommended':''}${!s.forAll?' ('+h.name+' only)':''}</div></div>
+<div class="supp-info"><div class="name">${s.name}</div><div class="desc">${s.desc}${highlight?' ⭐ Recommended':''}${!s.forAll&&s.recommended?' ⭐ Default for '+h.name:''}</div></div>
 <div class="supp-dose"><input type="number" step="0.5" min="0" value="${dose}" onchange="changeSuppDose('${h.id}','${s.id}',this.value,${active})" ${!active?'disabled':''}><span class="unit">${s.unit}</span></div>
 </div>`;
 });
