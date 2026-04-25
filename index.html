@@ -5,346 +5,689 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#5B4A3F">
+<meta name="theme-color" content="#5c4033">
 <title>Icelandic Horse Feed Calculator</title>
-<!-- Icelandic horses are easy keepers: lower baseline intake (1.5-1.8% BW vs typical 2%) -->
-<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiSWNlbGFuZGljIEhvcnNlIEZlZWQgQ2FsY3VsYXRvciIsInNob3J0X25hbWUiOiJGZWVkQ2FsYyIsInN0YXJ0X3VybCI6Ii4iLCJkaXNwbGF5Ijoic3RhbmRhbG9uZSIsImJhY2tncm91bmRfY29sb3IiOiIjRjVGMEVCIiwidGhlbWVfY29sb3IiOiIjNUI0QTNGIiwiaWNvbnMiOlt7InNyYyI6ImRhdGE6aW1hZ2Uvc3ZnK3htbCw8c3ZnIHhtbG5zPSdodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2Zycgdmlld0JveD0nMCAwIDEwMCAxMDAnPjxyZWN0IHdpZHRoPScxMDAnIGhlaWdodD0nMTAwJyByeD0nMjAnIGZpbGw9JyM1QjRBM0YnLz48dGV4dCB4PSc1MCcgeT0nNjUnIGZvbnQtc2l6ZT0nNTAnIHRleHQtYW5jaG9yPSdtaWRkbGUnIGZpbGw9J3doaXRlJz7wn5GRPC90ZXh0Pjwvc3ZnPiIsInNpemVzIjoiYW55IiwidHlwZSI6ImltYWdlL3N2Zyt4bWwifV19">
+<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiSWNlbGFuZGljIEhvcnNlIEZlZWQgQ2FsY3VsYXRvciIsInNob3J0X25hbWUiOiJGZWVkQ2FsYyIsInN0YXJ0X3VybCI6Ii4iLCJkaXNwbGF5Ijoic3RhbmRhbG9uZSIsImJhY2tncm91bmRfY29sb3IiOiIjZjVmMGViIiwidGhlbWVfY29sb3IiOiIjNWM0MDMzIiwiaWNvbnMiOlt7InNyYyI6ImRhdGE6aW1hZ2Uvc3ZnK3htbCw8c3ZnIHhtbG5zPSdodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2Zycgdmlld0JveD0nMCAwIDEwMCAxMDAnPjx0ZXh0IHk9Jy45ZW0nIGZvbnQtc2l6ZT0nOTAnPvCfkI48L3RleHQ+PC9zdmc+Iiwic2l6ZXMiOiJhbnkiLCJ0eXBlIjoiaW1hZ2Uvc3ZnK3htbCJ9XX0=">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
---bg:#F5F0EB;--card:#FFFFFF;--primary:#5B4A3F;--primary-light:#7D6B5D;
---accent:#8B6914;--accent-light:#C4A24E;--text:#3A3A3A;--text-light:#7A7A7A;
---border:#E0D8D0;--success:#4A7C59;--warn:#B8860B;--danger:#A0522D;
---shadow:0 2px 8px rgba(91,74,63,.12);--radius:12px;
+--bg:#f5f0eb;--card:#fff;--primary:#5c4033;--primary-light:#8b6f5e;--accent:#6b8e23;
+--accent-light:#8fbc3a;--text:#3a2e28;--text-light:#7a6e68;--border:#e0d5cc;
+--danger:#c0392b;--warning:#e67e22;--success:#27ae60;--info:#2980b9;
+--shadow:0 2px 8px rgba(0,0,0,.08);--radius:12px;
 }
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.5;padding-bottom:80px}
-header{background:linear-gradient(135deg,var(--primary),var(--primary-light));color:#fff;padding:16px 20px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.15)}
-header h1{font-size:1.2rem;font-weight:700;display:flex;align-items:center;gap:8px}
-header h1 span{font-size:1.4rem}
-.tabs{display:flex;background:var(--card);border-bottom:2px solid var(--border);position:sticky;top:56px;z-index:99;overflow-x:auto;-webkit-overflow-scrolling:touch}
-.tab{flex:1;min-width:0;padding:12px 8px;text-align:center;font-size:.82rem;font-weight:600;color:var(--text-light);border:none;background:none;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;transition:all .2s}
-.tab.active{color:var(--primary);border-bottom-color:var(--accent)}
-.tab-panel{display:none;padding:16px}.tab-panel.active{display:block}
-.card{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:var(--shadow)}
-.card h3{font-size:1rem;color:var(--primary);margin-bottom:8px;display:flex;align-items:center;gap:6px}
-.badge{display:inline-block;font-size:.65rem;padding:2px 8px;border-radius:20px;font-weight:600;margin:2px}
-.badge-warn{background:#FFF3CD;color:#856404}.badge-info{background:#D1ECF1;color:#0C5460}.badge-danger{background:#F8D7DA;color:#721C24}
-label{display:block;font-size:.8rem;font-weight:600;color:var(--text-light);margin:8px 0 4px}
-input[type=number],input[type=text],select{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.9rem;background:var(--bg);transition:border .2s}
-input:focus,select:focus{outline:none;border-color:var(--accent)}
-.row{display:flex;gap:12px;flex-wrap:wrap}.row>*{flex:1;min-width:120px}
-.feed-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)}
-.feed-row:last-child{border:none}
-.feed-name{flex:1;font-size:.85rem;font-weight:500}
-.feed-input{width:70px;text-align:center;padding:6px 4px;font-size:.85rem}
-.feed-unit{font-size:.75rem;color:var(--text-light);width:24px}
-.supp-row{display:flex;align-items:center;gap:8px;padding:6px 0}
-.supp-toggle{width:44px;height:24px;background:var(--border);border-radius:12px;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0}
-.supp-toggle.on{background:var(--success)}
-.supp-toggle::after{content:'';width:20px;height:20px;background:#fff;border-radius:50%;position:absolute;top:2px;left:2px;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
-.supp-toggle.on::after{transform:translateX(20px)}
-.supp-name{flex:1;font-size:.85rem}.supp-dose{width:80px}
-.total-bar{background:linear-gradient(135deg,var(--primary),var(--primary-light));color:#fff;border-radius:var(--radius);padding:14px 16px;margin-top:8px;display:flex;justify-content:space-between;align-items:center}
-.total-bar .lbl{font-size:.75rem;opacity:.8}.total-bar .val{font-size:1.3rem;font-weight:700}
-.alert-box{padding:10px 14px;border-radius:8px;font-size:.8rem;margin-bottom:8px;display:flex;align-items:flex-start;gap:8px}
-.alert-box.warn{background:#FFF8E1;border-left:3px solid var(--warn);color:#795600}
-.alert-box.info{background:#E8F4FD;border-left:3px solid #2196F3;color:#0D47A1}
-.btn{padding:10px 20px;border:none;border-radius:8px;font-size:.85rem;font-weight:600;cursor:pointer;transition:all .2s}
-.btn-primary{background:var(--primary);color:#fff}.btn-primary:active{background:var(--primary-light)}
-.btn-outline{background:none;border:1.5px solid var(--primary);color:var(--primary)}
-.btn-sm{padding:6px 14px;font-size:.78rem}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:72px}
+.header{background:linear-gradient(135deg,var(--primary),var(--primary-light));color:#fff;padding:16px 20px 12px;position:sticky;top:0;z-index:100}
+.header h1{font-size:18px;font-weight:700;display:flex;align-items:center;gap:8px}
+.tabs{display:flex;overflow-x:auto;gap:4px;background:var(--primary);padding:0 12px;position:sticky;top:52px;z-index:99;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{padding:10px 14px;color:rgba(255,255,255,.65);font-size:12px;font-weight:600;white-space:nowrap;cursor:pointer;border-bottom:3px solid transparent;transition:.2s}
+.tab.active{color:#fff;border-bottom-color:var(--accent-light)}
+.tab:hover{color:rgba(255,255,255,.9)}
+.page{display:none;padding:16px;animation:fadeIn .25s ease}
+.page.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin-bottom:16px;border:1px solid var(--border)}
+.card h3{font-size:16px;margin-bottom:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;text-transform:uppercase;letter-spacing:.3px}
+.badge-senior{background:#f0e6d3;color:#8b6914}
+.badge-pssm{background:#fde8e8;color:#c0392b}
+.badge-teeth{background:#fef3e2;color:#e67e22}
+.badge-digestive{background:#e8f6e8;color:#27ae60}
+.badge-ir{background:#fde8e8;color:#c0392b}
+.badge-overweight{background:#fef3e2;color:#e67e22}
+.badge-hoof{background:#e8eef6;color:#2980b9}
+.badge-healthy{background:#e8f6e8;color:#27ae60}
+.target-bar{height:8px;background:#e8e0d8;border-radius:4px;margin:8px 0;overflow:visible;position:relative}
+.target-fill{height:100%;border-radius:4px;transition:width .4s ease;position:relative}
+.target-fill.under{background:var(--warning)}
+.target-fill.good{background:var(--success)}
+.target-fill.over{background:var(--danger)}
+.target-range{display:flex;justify-content:space-between;font-size:11px;color:var(--text-light);margin-top:2px}
+.target-label{font-size:13px;font-weight:600;margin-top:4px}
+.feed-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)}
+.feed-row:last-child{border-bottom:none}
+.feed-name{font-size:13px;flex:1;min-width:0}
+.feed-name small{display:block;color:var(--text-light);font-size:11px}
+.feed-controls{display:flex;align-items:center;gap:6px}
+.feed-controls button{width:30px;height:30px;border-radius:50%;border:1px solid var(--border);background:var(--bg);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--primary);font-weight:700;transition:.15s}
+.feed-controls button:active{background:var(--primary);color:#fff}
+.feed-controls input{width:52px;text-align:center;border:1px solid var(--border);border-radius:8px;padding:4px;font-size:14px;font-weight:600}
+.feed-controls .unit{font-size:11px;color:var(--text-light);width:20px}
+.feed-rec{font-size:11px;color:var(--accent);font-weight:600}
+.notes{background:#faf7f3;border-left:3px solid var(--accent);padding:10px 12px;border-radius:0 8px 8px 0;margin-top:8px;font-size:13px;color:var(--text-light)}
+.supp-row{display:flex;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);gap:10px}
+.supp-row:last-child{border-bottom:none}
+.supp-toggle{position:relative;width:42px;height:24px;flex-shrink:0}
+.supp-toggle input{opacity:0;width:0;height:0}
+.supp-toggle .slider{position:absolute;inset:0;background:#ccc;border-radius:24px;cursor:pointer;transition:.2s}
+.supp-toggle .slider:before{content:'';position:absolute;width:18px;height:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.2s}
+.supp-toggle input:checked+.slider{background:var(--accent)}
+.supp-toggle input:checked+.slider:before{transform:translateX(18px)}
+.supp-info{flex:1;min-width:0}
+.supp-info .name{font-size:13px;font-weight:600}
+.supp-info .desc{font-size:11px;color:var(--text-light)}
+.supp-dose{display:flex;align-items:center;gap:4px}
+.supp-dose input{width:40px;text-align:center;border:1px solid var(--border);border-radius:6px;padding:3px;font-size:13px}
+.supp-dose .unit{font-size:11px;color:var(--text-light)}
+.summary-table{width:100%;font-size:13px;border-collapse:collapse}
+.summary-table th{text-align:left;padding:8px 6px;border-bottom:2px solid var(--border);font-size:12px;color:var(--text-light);font-weight:600}
+.summary-table td{padding:6px;border-bottom:1px solid var(--border)}
+.summary-table tr:last-child td{border-bottom:none}
+.summary-table .total-row{font-weight:700;background:var(--bg)}
+.btn{padding:10px 20px;border-radius:var(--radius);border:none;font-size:14px;font-weight:600;cursor:pointer;transition:.2s}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary:active{background:var(--primary-light)}
+.btn-accent{background:var(--accent);color:#fff}
+.btn-accent:active{background:var(--accent-light)}
 .btn-danger{background:var(--danger);color:#fff}
-.log-entry{padding:10px;border-bottom:1px solid var(--border);font-size:.85rem}
-.log-date{font-weight:600;color:var(--primary)}
-.grand-total{background:linear-gradient(135deg,var(--accent),var(--accent-light));color:#fff;border-radius:var(--radius);padding:16px;text-align:center;margin-top:12px}
-.grand-total .val{font-size:1.8rem;font-weight:800}
-.chart-wrap{background:var(--card);border-radius:var(--radius);padding:12px;margin-top:12px;box-shadow:var(--shadow)}
-canvas{width:100%;height:200px}
-.empty-state{text-align:center;padding:40px 20px;color:var(--text-light);font-size:.9rem}
-.horse-select{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
-.horse-chip{padding:6px 14px;border-radius:20px;font-size:.8rem;font-weight:600;border:1.5px solid var(--border);cursor:pointer;transition:all .2s;background:var(--card)}
-.horse-chip.active{background:var(--primary);color:#fff;border-color:var(--primary)}
-.section-title{font-size:.75rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-light);margin:16px 0 8px;font-weight:700}
-.flex-end{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
-.pct-bar{height:6px;background:var(--border);border-radius:3px;margin-top:4px;overflow:hidden}
-.pct-fill{height:100%;border-radius:3px;transition:width .3s}
-@media(max-width:400px){.feed-input{width:56px}.row>*{min-width:100px}}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text)}
+.btn-sm{padding:6px 12px;font-size:12px}
+.btn-block{display:block;width:100%;text-align:center}
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text-light)}
+.form-group input,.form-group select{width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:var(--card)}
+.form-group input:focus,.form-group select:focus{outline:none;border-color:var(--primary)}
+.horse-tabs{display:flex;gap:6px;margin-bottom:16px;overflow-x:auto;padding-bottom:4px}
+.horse-tab{padding:8px 16px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;border:2px solid var(--border);background:var(--card);white-space:nowrap;transition:.2s}
+.horse-tab.active{border-color:var(--primary);background:var(--primary);color:#fff}
+.log-entry{display:flex;justify-content:space-between;align-items:center;padding:12px;border-bottom:1px solid var(--border)}
+.log-entry:last-child{border-bottom:none}
+.log-date{font-weight:600;font-size:14px}
+.log-actions{display:flex;gap:6px}
+.chart-container{position:relative;width:100%;height:280px;margin:12px 0}
+canvas{width:100%!important;height:100%!important}
+.empty-state{text-align:center;padding:40px 20px;color:var(--text-light)}
+.empty-state .icon{font-size:48px;margin-bottom:12px}
+.pasture-toggle{display:flex;align-items:center;gap:10px;padding:10px;background:var(--bg);border-radius:8px;margin-bottom:8px}
+.conditions-list{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.season-toggle{display:flex;gap:8px;margin-bottom:16px}
+.season-btn{flex:1;padding:10px;border:2px solid var(--border);border-radius:8px;text-align:center;cursor:pointer;font-size:13px;font-weight:600;background:var(--card);transition:.2s}
+.season-btn.active{border-color:var(--accent);background:var(--accent);color:#fff}
+.horse-settings-card{margin-bottom:16px}
+.condition-chip{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:12px;border:1px solid var(--border);background:var(--bg);cursor:pointer;transition:.15s}
+.condition-chip.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.activity-selector{display:flex;gap:6px;flex-wrap:wrap}
+.activity-opt{padding:6px 12px;border-radius:20px;font-size:12px;border:2px solid var(--border);cursor:pointer;background:var(--card);transition:.2s}
+.activity-opt.active{border-color:var(--accent);background:var(--accent);color:#fff}
+input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
+input[type=number]{-moz-appearance:textfield}
+.flex-between{display:flex;justify-content:space-between;align-items:center}
+.mb-8{margin-bottom:8px}.mb-16{margin-bottom:16px}.mt-8{margin-top:8px}.mt-16{margin-top:16px}
 </style>
 </head>
 <body>
-<header><h1><span>🐴</span> Icelandic Horse Feed Calculator</h1></header>
+<div class="header"><h1>🐴 Icelandic Horse Feed Calculator</h1></div>
 <div class="tabs" id="tabs">
-<button class="tab active" data-tab="calculator">🧮 Calculator</button>
-<button class="tab" data-tab="summary">📊 Summary</button>
-<button class="tab" data-tab="logs">📋 Logs</button>
-<button class="tab" data-tab="trends">📈 Trends</button>
-<button class="tab" data-tab="settings">⚙️ Settings</button>
+<div class="tab active" data-tab="recs">🥕 Feed</div>
+<div class="tab" data-tab="supps">💊 Supps</div>
+<div class="tab" data-tab="summary">📊 Summary</div>
+<div class="tab" data-tab="logs">📋 Logs</div>
+<div class="tab" data-tab="trends">📈 Trends</div>
+<div class="tab" data-tab="settings">⚙️ Settings</div>
 </div>
 
-<div class="tab-panel active" id="panel-calculator"></div>
-<div class="tab-panel" id="panel-summary"></div>
-<div class="tab-panel" id="panel-logs"></div>
-<div class="tab-panel" id="panel-trends"></div>
-<div class="tab-panel" id="panel-settings"></div>
+<div id="page-recs" class="page active"></div>
+<div id="page-supps" class="page"></div>
+<div id="page-summary" class="page"></div>
+<div id="page-logs" class="page"></div>
+<div id="page-trends" class="page"></div>
+<div id="page-settings" class="page"></div>
 
 <script>
 'use strict';
-const FEED_TYPES=['Free roaming pasture','Timothy hay','Alfalfa hay','Soaked timothy cubes','Soaked teff cubes','Soaked alfalfa cubes','Haystack special blend pellets','Soaked beet pulps'];
-const SHARED_SUPPS=['Triple Crown Balanced Gold','Amino Trace+','Daily Red Fortified','Digest 911','Turmeric for Horse'];
-const TENOR_SUPPS=['Purina Super Sport Supplement','Assured Gut Gold','Senior Weight Accelerator','Health-E Maximum Strength Vitamin E'];
-const CONDITIONS=['PSSM','Insulin Resistance','Teeth Problem','Digestive Sensitive','Overweight','Hoof Care'];
-const COND_TIPS={
-'PSSM':{icon:'⚠️',text:'Low starch/sugar, increase fat sources. Avoid sweet feeds.',class:'warn'},
-'Insulin Resistance':{icon:'⚠️',text:'Limit alfalfa & sugary feeds. Prefer teff cubes. Icelandic horses are prone to IR — monitor weight closely.',class:'warn'},
-'Teeth Problem':{icon:'🦷',text:'Use more soaked cubes, reduce long-stem hay.',class:'info'},
-'Digestive Sensitive':{icon:'💚',text:'Feed smaller, more frequent meals throughout the day.',class:'info'},
-'Overweight':{icon:'📉',text:'Reduce total daily intake toward 1.2-1.5% BW. Icelandic horses are easy keepers — less is more.',class:'warn'},
-'Hoof Care':{icon:'🐾',text:'Ensure adequate biotin, zinc, and methionine via supplements.',class:'info'}
-};
-
-const DEFAULT_HORSES=[
-{id:'tenor',name:'Tenor',weight:700,conditions:['PSSM','Teeth Problem','Digestive Sensitive','Hoof Care'],issenior:true,feeds:{},supps:{}},
-{id:'odinn',name:'Odinn',weight:700,conditions:['Digestive Sensitive'],issenior:false,feeds:{},supps:{}},
-{id:'uffie',name:'Uffie',weight:800,conditions:['Digestive Sensitive'],issenior:false,feeds:{},supps:{}},
-{id:'spoi',name:'Spoi',weight:950,conditions:['Insulin Resistance','Overweight'],issenior:false,feeds:{},supps:{}}
+// ── Data Defaults ──
+const FEED_TYPES=[
+{id:'pasture',name:'Free Roaming Pasture',unit:'est.',isPasture:true},
+{id:'timothy_hay',name:'Timothy Hay (dry)',unit:'lb'},
+{id:'alfalfa_hay',name:'Alfalfa Hay (dry)',unit:'lb'},
+{id:'soaked_timothy',name:'Soaked Timothy Cubes',unit:'lb'},
+{id:'soaked_teff',name:'Soaked Teff Cubes',unit:'lb'},
+{id:'soaked_alfalfa',name:'Soaked Alfalfa Cubes',unit:'lb'},
+{id:'special_pellets',name:'Haystack Special Blend Pellets',unit:'lb'},
+{id:'soaked_beet',name:'Soaked Beet Pulps',unit:'lb'}
 ];
 
-let horses=JSON.parse(localStorage.getItem('fc_horses'))||JSON.parse(JSON.stringify(DEFAULT_HORSES));
-let currentHorse=0;
-function save(){localStorage.setItem('fc_horses',JSON.stringify(horses))}
-function getSupps(h){let s=[...SHARED_SUPPS];if(h.id==='tenor')s.push(...TENOR_SUPPS);return s}
-// Icelandic horses are easy keepers — baseline 1.5-1.8% BW (lower than typical horses)
-function targetRange(h){let lo=h.conditions.includes('Overweight')?1.2:1.5,hi=h.conditions.includes('Overweight')?1.5:1.8;return[lo*h.weight/100,hi*h.weight/100]}
-function totalFeed(h){return Object.values(h.feeds||{}).reduce((s,v)=>s+(parseFloat(v)||0),0)}
+const ALL_CONDITIONS=['senior','teeth','digestive','pssm','hoof','ir','overweight','healthy'];
+const CONDITION_LABELS={senior:'Senior',teeth:'Teeth Problem',digestive:'Digestive Sensitive',pssm:'PSSM',hoof:'Hoof Care',ir:'Insulin Resistant',overweight:'Overweight',healthy:'Healthy'};
+const CONDITION_BADGE={senior:'badge-senior',teeth:'badge-teeth',digestive:'badge-digestive',pssm:'badge-pssm',hoof:'badge-hoof',ir:'badge-ir',overweight:'badge-overweight',healthy:'badge-healthy'};
 
-// Tabs
+const BASE_SUPPS=[
+{id:'balanced_gold',name:'Triple Crown Balanced Gold',desc:'Ration balancer',dose:4,unit:'oz',forAll:true},
+{id:'amino_trace',name:'Amino Trace+',desc:'Trace minerals + amino acids',dose:2,unit:'oz',forAll:true},
+{id:'daily_red',name:'Daily Red Fortified',desc:'Vitamin/mineral',dose:2,unit:'oz',forAll:true},
+{id:'digest_911',name:'Digest 911',desc:'Digestive support',dose:1,unit:'oz',forAll:true,digestiveRec:true},
+{id:'turmeric',name:'Turmeric for Horse',desc:'Anti-inflammatory',dose:1,unit:'tbsp',forAll:true}
+];
+const TENOR_SUPPS=[
+{id:'super_sport',name:'Purina Super Sport',desc:'Amino acids for muscle (PSSM)',dose:4,unit:'oz'},
+{id:'gut_gold',name:'Assured Gut Gold',desc:'Gut health',dose:1,unit:'oz'},
+{id:'weight_accel',name:'Senior Weight Accelerator',desc:'Weight maintenance',dose:8,unit:'oz'},
+{id:'vit_e',name:'Health-E Max Vitamin E',desc:'Critical for PSSM',dose:1,unit:'scoop'}
+];
+
+const DEFAULT_HORSES=[
+{id:'tenor',name:'Tenor',weight:700,conditions:['senior','teeth','digestive','pssm','hoof'],activity:'moderate',emoji:'🐎'},
+{id:'odinn',name:'Odinn',weight:700,conditions:['healthy','digestive'],activity:'moderate',emoji:'🏇'},
+{id:'uffie',name:'Uffie',weight:800,conditions:['healthy','digestive'],activity:'moderate',emoji:'🐴'},
+{id:'spoi',name:'Spoi',weight:950,conditions:['ir','overweight'],activity:'moderate',emoji:'🐎'}
+];
+
+const ACTIVITIES=[{id:'light',label:'Light'},{id:'moderate',label:'Moderate (~1hr/day)'},{id:'heavy',label:'Heavy'}];
+
+// ── State ──
+let state=loadState();
+let selectedHorse=0;
+let selectedTab='recs';
+let trendHorse=0;
+
+function defaultState(){
+return{
+horses:JSON.parse(JSON.stringify(DEFAULT_HORSES)),
+season:'summer',
+feeds:{},supplements:{},adjustments:{}
+};
+}
+function loadState(){
+try{const s=localStorage.getItem('hfc_state');if(s)return JSON.parse(s)}catch(e){}
+return defaultState();
+}
+function save(){localStorage.setItem('hfc_state',JSON.stringify(state))}
+
+// ── Recommendation Engine ──
+function getTargetRange(h){
+const w=h.weight;
+const hasIR=h.conditions.includes('ir');
+const hasOW=h.conditions.includes('overweight');
+if(hasIR||hasOW)return[w*0.012,w*0.015];
+return[w*0.015,w*0.018];
+}
+
+function recommend(h){
+const[lo,hi]=getTargetRange(h);
+const mid=(lo+hi)/2;
+const isSummer=state.season==='summer';
+const c=h.conditions;
+const hasPSSM=c.includes('pssm');const hasTeeth=c.includes('teeth');
+const hasIR=c.includes('ir');const hasOW=c.includes('overweight');
+const hasDig=c.includes('digestive');const isSenior=c.includes('senior');
+
+let r={pasture:false,timothy_hay:0,alfalfa_hay:0,soaked_timothy:0,soaked_teff:0,soaked_alfalfa:0,special_pellets:0,soaked_beet:0};
+let notes=[];
+
+// Tenor-like: senior+teeth+pssm
+if(isSenior&&hasTeeth&&hasPSSM){
+r.pasture=isSummer;
+const pastureEst=isSummer?2:0;
+const dryHay=Math.min(5,mid*0.4);
+r.timothy_hay=+(dryHay*0.75).toFixed(1);
+r.alfalfa_hay=+(dryHay*0.25).toFixed(1);
+const remaining=mid-pastureEst-dryHay;
+r.soaked_timothy=+(remaining*0.55).toFixed(1);
+r.soaked_alfalfa=+(remaining*0.2).toFixed(1);
+r.soaked_beet=+(remaining*0.25).toFixed(1);
+r.soaked_beet=Math.max(1,Math.min(2,r.soaked_beet));
+r.special_pellets=0.5;
+notes.push('⚠️ PSSM: Keep starch/sugar low, higher fat');
+notes.push('🦷 Teeth: Prefer soaked feeds over dry');
+notes.push('🍽️ Split into 3-4 smaller meals throughout the day');
+if(c.includes('hoof'))notes.push('🐴 Monitor hoof condition — biotin supplementation recommended');
+}
+// IR/overweight (Spoi-like)
+else if(hasIR||hasOW){
+r.pasture=isSummer;
+const pastureEst=isSummer?2:0;
+const target=lo+(hi-lo)*0.3; // lean toward lower end
+const hayAmt=target-pastureEst;
+r.timothy_hay=+(hayAmt*0.6).toFixed(1);
+r.soaked_teff=+(hayAmt*0.25).toFixed(1);
+r.soaked_beet=+Math.min(1,(hayAmt*0.1)).toFixed(1);
+r.alfalfa_hay=0;// avoid for IR
+r.special_pellets=0;
+notes.push('🚫 Avoid or minimize alfalfa (high sugar risk for IR)');
+notes.push('💧 Soak hay 30-60 min to reduce sugar content');
+if(hasOW)notes.push('⚖️ Target lower end of range for weight management');
+}
+// Healthy horses (Odinn/Uffie-like)
+else{
+r.pasture=isSummer;
+const pastureEst=isSummer?3:0;
+const remaining=mid-pastureEst;
+if(remaining>0){
+r.timothy_hay=+(remaining*0.65).toFixed(1);
+r.alfalfa_hay=+(remaining*0.15).toFixed(1);
+r.special_pellets=+Math.min(2,(remaining*0.12)).toFixed(1);
+r.soaked_beet=+Math.min(1,(remaining*0.08)).toFixed(1);
+}
+}
+if(hasDig&&!notes.some(n=>n.includes('meals')))notes.push('💚 Digestive sensitive: consider splitting meals');
+
+// Clamp negatives
+FEED_TYPES.forEach(f=>{if(!f.isPasture&&r[f.id]<0)r[f.id]=0});
+return{feeds:r,notes,targetRange:[lo,hi]};
+}
+
+function getAdjusted(horseId,feedId){
+const key=horseId+'_'+feedId;
+if(state.adjustments[key]!==undefined)return state.adjustments[key];
+return null;
+}
+function setAdjusted(horseId,feedId,val){
+state.adjustments[horseId+'_'+feedId]=val;save();
+}
+function clearAdjustment(horseId,feedId){
+delete state.adjustments[horseId+'_'+feedId];save();
+}
+
+function getFeedTotal(h,rec){
+let total=0;
+FEED_TYPES.forEach(f=>{
+if(f.isPasture)return;
+const adj=getAdjusted(h.id,f.id);
+total+=(adj!==null?adj:rec.feeds[f.id])||0;
+});
+if(rec.feeds.pasture&&state.season==='summer')total+=(state.season==='summer'?3:0);// estimate
+return total;
+}
+
+// ── Supplements ──
+function getSuppsForHorse(h){
+let supps=BASE_SUPPS.map(s=>({...s,recommended:true}));
+if(h.id==='tenor'||h.conditions.includes('pssm')){
+TENOR_SUPPS.forEach(s=>supps.push({...s,recommended:true}));
+}
+return supps;
+}
+function getSuppState(horseId,suppId){
+const key='supp_'+horseId+'_'+suppId;
+if(state.supplements[key]!==undefined)return state.supplements[key];
+return null;// null=use default
+}
+function setSuppState(horseId,suppId,obj){
+state.supplements['supp_'+horseId+'_'+suppId]=obj;save();
+}
+
+// ── Render: Tabs ──
 document.getElementById('tabs').addEventListener('click',e=>{
 const t=e.target.closest('.tab');if(!t)return;
 document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
-document.querySelectorAll('.tab-panel').forEach(x=>x.classList.remove('active'));
 t.classList.add('active');
-document.getElementById('panel-'+t.dataset.tab).classList.add('active');
-render(t.dataset.tab);
+selectedTab=t.dataset.tab;
+document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+document.getElementById('page-'+selectedTab).classList.add('active');
+render();
 });
 
-function render(tab){
-({calculator:renderCalc,summary:renderSummary,logs:renderLogs,trends:renderTrends,settings:renderSettings})[tab]();
+function render(){
+({recs:renderRecs,supps:renderSupps,summary:renderSummary,logs:renderLogs,trends:renderTrends,settings:renderSettings})[selectedTab]();
 }
 
-function renderCalc(){
-const p=document.getElementById('panel-calculator');
-let html='<div class="horse-select">';
-horses.forEach((h,i)=>{html+=`<div class="horse-chip ${i===currentHorse?'active':''}" onclick="currentHorse=${i};renderCalc()">${h.name}</div>`});
+// ── Render: Horse Tabs (reusable) ──
+function horseTabs(sel,onChange){
+return '<div class="horse-tabs">'+state.horses.map((h,i)=>
+`<div class="horse-tab${i===sel?' active':''}" data-idx="${i}">${h.emoji} ${h.name}</div>`
+).join('')+'</div>';
+}
+
+// ── Render: Recommendations ──
+function renderRecs(){
+const el=document.getElementById('page-recs');
+const h=state.horses[selectedHorse];
+if(!h){el.innerHTML='<div class="empty-state"><div class="icon">🐴</div>No horses configured</div>';return;}
+const rec=recommend(h);
+const[lo,hi]=rec.targetRange;
+const total=getFeedTotal(h,rec);
+const pct=lo>0?((total/hi)*100):0;
+const barClass=total<lo?'under':total>hi?'over':'good';
+
+let html=horseTabs(selectedHorse);
+html+=`<div class="card"><h3>${h.emoji} ${h.name} <span style="font-size:13px;color:var(--text-light)">${h.weight} lb</span></h3>`;
+html+='<div class="conditions-list">';
+h.conditions.forEach(c=>{
+html+=`<span class="badge ${CONDITION_BADGE[c]||''}">${CONDITION_LABELS[c]||c}</span>`;
+});
 html+='</div>';
-const h=horses[currentHorse];
-const[lo,hi]=targetRange(h);
-const tot=totalFeed(h);
-const pct=hi>0?Math.min(tot/hi*100,150):0;
-const color=tot<lo?'var(--warn)':tot>hi?'var(--danger)':'var(--success)';
+html+=`<div class="target-label">Daily Total: <strong>${total.toFixed(1)} lb</strong> / Target: ${lo.toFixed(1)}–${hi.toFixed(1)} lb</div>`;
+html+=`<div class="target-bar"><div class="target-fill ${barClass}" style="width:${Math.min(120,pct).toFixed(0)}%"></div></div>`;
+html+=`<div class="target-range"><span>${lo.toFixed(1)} lb</span><span>${hi.toFixed(1)} lb</span></div>`;
+html+='</div>';
 
-// Condition alerts
-if(h.conditions.length){
-html+='<div class="section-title">Health Alerts</div>';
-h.conditions.forEach(c=>{const t=COND_TIPS[c];if(t)html+=`<div class="alert-box ${t.class}">${t.icon} <span><strong>${c}:</strong> ${t.text}</span></div>`});
-}
-
-// Feed section
-html+='<div class="section-title">Daily Feed (lbs)</div><div class="card">';
+html+='<div class="card">';
 FEED_TYPES.forEach(f=>{
-const v=h.feeds[f]||'';
-const flagged=(f==='Alfalfa hay'&&h.conditions.includes('Insulin Resistance'));
+if(f.isPasture){
+html+=`<div class="pasture-toggle">
+<span style="font-size:20px">🌿</span>
+<span style="flex:1;font-size:13px;font-weight:600">Free Roaming Pasture</span>
+<span class="badge ${rec.feeds.pasture?'badge-healthy':'badge-overweight'}">${rec.feeds.pasture?'Available ('+state.season+')':'Limited ('+state.season+')'}</span>
+</div>`;
+return;
+}
+const recVal=rec.feeds[f.id]||0;
+const adj=getAdjusted(h.id,f.id);
+const val=adj!==null?adj:recVal;
+const isAdj=adj!==null&&Math.abs(adj-recVal)>0.05;
 html+=`<div class="feed-row">
-<span class="feed-name">${f}${flagged?' ⚠️':''}</span>
-<input type="number" class="feed-input" min="0" step="0.5" value="${v}" data-feed="${f}" placeholder="0">
-<span class="feed-unit">lb</span></div>`;
+<div class="feed-name">${f.name}${isAdj?`<small>Rec: ${recVal.toFixed(1)} lb</small>`:''}</div>
+<div class="feed-controls">
+<button onclick="adjFeed('${h.id}','${f.id}',-0.5)">−</button>
+<input type="number" step="0.1" min="0" max="50" value="${val.toFixed(1)}" onchange="setFeed('${h.id}','${f.id}',this.value)" id="feed_${h.id}_${f.id}">
+<span class="unit">${f.unit}</span>
+<button onclick="adjFeed('${h.id}','${f.id}',0.5)">+</button>
+</div></div>`;
 });
-html+=`</div>`;
+html+='</div>';
 
-// Total bar
-html+=`<div class="total-bar"><div><div class="lbl">Daily Total</div><div class="val">${tot.toFixed(1)} lb</div></div><div style="text-align:right"><div class="lbl">Target ${lo.toFixed(0)}-${hi.toFixed(0)} lb</div><div class="pct-bar" style="width:100px"><div class="pct-fill" style="width:${Math.min(pct,100)}%;background:${color}"></div></div></div></div>`;
+if(rec.notes.length){
+html+='<div class="card"><h3>📝 Feeding Notes</h3>';
+rec.notes.forEach(n=>{html+=`<div class="notes">${n}</div>`;});
+html+='</div>';
+}
+el.innerHTML=html;
+el.querySelectorAll('.horse-tab').forEach(t=>t.addEventListener('click',e=>{
+selectedHorse=+e.target.closest('.horse-tab').dataset.idx;renderRecs();
+}));
+}
+window.adjFeed=function(hid,fid,delta){
+const h=state.horses.find(x=>x.id===hid);
+const rec=recommend(h);
+const adj=getAdjusted(hid,fid);
+const cur=adj!==null?adj:(rec.feeds[fid]||0);
+setAdjusted(hid,fid,Math.max(0,+(cur+delta).toFixed(1)));
+renderRecs();
+};
+window.setFeed=function(hid,fid,val){
+setAdjusted(hid,fid,Math.max(0,+parseFloat(val).toFixed(1)));
+renderRecs();
+};
 
-// Supplements
-html+='<div class="section-title">Supplements</div><div class="card">';
-getSupps(h).forEach(s=>{
-const on=h.supps[s]&&h.supps[s].on;
-const dose=h.supps[s]?h.supps[s].dose:'';
-html+=`<div class="supp-row">
-<div class="supp-toggle ${on?'on':''}" data-supp="${s}"></div>
-<span class="supp-name">${s}</span>
-<input type="text" class="supp-dose feed-input" style="width:70px" placeholder="dose" value="${dose||''}" data-suppdose="${s}" ${on?'':'disabled'}>
+// ── Render: Supplements ──
+function renderSupps(){
+const el=document.getElementById('page-supps');
+const h=state.horses[selectedHorse];
+if(!h){el.innerHTML='';return;}
+const supps=getSuppsForHorse(h);
+let html=horseTabs(selectedHorse);
+html+='<div class="card">';
+supps.forEach(s=>{
+const st=getSuppState(h.id,s.id);
+const active=st!==null?st.active:s.recommended;
+const dose=st!==null&&st.dose!==undefined?st.dose:s.dose;
+const highlight=s.digestiveRec&&h.conditions.includes('digestive');
+html+=`<div class="supp-row${highlight?' style="background:#f0faf0"':''}">
+<label class="supp-toggle"><input type="checkbox" ${active?'checked':''} onchange="toggleSupp('${h.id}','${s.id}',this.checked,${dose})"><span class="slider"></span></label>
+<div class="supp-info"><div class="name">${s.name}</div><div class="desc">${s.desc}${highlight?' ⭐ Recommended':''}${!s.forAll?' ('+h.name+' only)':''}</div></div>
+<div class="supp-dose"><input type="number" step="0.5" min="0" value="${dose}" onchange="changeSuppDose('${h.id}','${s.id}',this.value,${active})" ${!active?'disabled':''}><span class="unit">${s.unit}</span></div>
 </div>`;
 });
 html+='</div>';
-html+='<div class="flex-end"><button class="btn btn-primary" onclick="saveLog()">💾 Save Today\'s Log</button></div>';
-p.innerHTML=html;
-
-// Events
-p.querySelectorAll('[data-feed]').forEach(el=>el.addEventListener('input',e=>{
-h.feeds[e.target.dataset.feed]=e.target.value;save();
-// Update total bar inline
-const newTot=totalFeed(h);
-const bar=p.querySelector('.total-bar .val');if(bar)bar.textContent=newTot.toFixed(1)+' lb';
-const fill=p.querySelector('.pct-fill');
-if(fill){const np=Math.min(newTot/hi*100,100);fill.style.width=np+'%';fill.style.background=newTot<lo?'var(--warn)':newTot>hi?'var(--danger)':'var(--success)'}
-}));
-p.querySelectorAll('.supp-toggle').forEach(el=>el.addEventListener('click',e=>{
-const s=el.dataset.supp;
-if(!h.supps[s])h.supps[s]={on:false,dose:''};
-h.supps[s].on=!h.supps[s].on;save();renderCalc();
-}));
-p.querySelectorAll('[data-suppdose]').forEach(el=>el.addEventListener('input',e=>{
-const s=e.target.dataset.suppdose;
-if(!h.supps[s])h.supps[s]={on:true,dose:''};
-h.supps[s].dose=e.target.value;save();
+el.innerHTML=html;
+el.querySelectorAll('.horse-tab').forEach(t=>t.addEventListener('click',e=>{
+selectedHorse=+e.target.closest('.horse-tab').dataset.idx;renderSupps();
 }));
 }
+window.toggleSupp=function(hid,sid,active,dose){setSuppState(hid,sid,{active,dose:+dose});renderSupps()};
+window.changeSuppDose=function(hid,sid,dose,active){setSuppState(hid,sid,{active:!!active,dose:+dose});renderSupps()};
 
+// ── Render: Summary ──
 function renderSummary(){
-const p=document.getElementById('panel-summary');
-let html='<div class="section-title">Daily Summary</div>';
-let grandTotal=0;
-horses.forEach(h=>{
-const tot=totalFeed(h);grandTotal+=tot;
-const[lo,hi]=targetRange(h);
-const status=tot<lo?'🔻 Under':tot>hi?'🔺 Over':'✅ Good';
-html+=`<div class="card"><h3>🐴 ${h.name} <span style="font-size:.75rem;color:var(--text-light)">${h.weight} lb</span></h3>`;
-h.conditions.forEach(c=>html+=`<span class="badge ${c==='PSSM'||c==='Insulin Resistance'||c==='Overweight'?'badge-warn':'badge-info'}">${c}</span>`);
-html+=`<div style="margin-top:10px">`;
-FEED_TYPES.forEach(f=>{const v=parseFloat(h.feeds[f])||0;if(v>0)html+=`<div class="feed-row"><span class="feed-name">${f}</span><span style="font-weight:600">${v.toFixed(1)} lb</span></div>`});
-const activeSupps=getSupps(h).filter(s=>h.supps[s]&&h.supps[s].on);
-if(activeSupps.length){html+='<div style="margin-top:8px;font-size:.78rem;color:var(--text-light)"><strong>Supplements:</strong> '+activeSupps.map(s=>s+(h.supps[s].dose?' ('+h.supps[s].dose+')':'')).join(', ')+'</div>'}
-html+=`</div><div class="total-bar" style="margin-top:10px"><div><div class="lbl">Total</div><div class="val">${tot.toFixed(1)} lb</div></div><div style="text-align:right"><div class="lbl">${status}</div><div class="lbl">${(tot/h.weight*100).toFixed(1)}% BW</div></div></div></div>`;
+const el=document.getElementById('page-summary');
+let html='<div class="card"><h3>📊 Daily Feed Summary</h3>';
+html+='<div style="overflow-x:auto"><table class="summary-table"><tr><th>Feed</th>';
+state.horses.forEach(h=>{html+=`<th>${h.emoji} ${h.name}</th>`});
+html+='<th>Total</th></tr>';
+let grandTotals={};
+FEED_TYPES.forEach(f=>{
+if(f.isPasture){
+html+='<tr><td>🌿 Pasture</td>';
+state.horses.forEach(h=>{const rec=recommend(h);html+=`<td>${rec.feeds.pasture?'✅':'—'}</td>`});
+html+='<td></td></tr>';return;
+}
+html+=`<tr><td>${f.name}</td>`;
+let rowTotal=0;
+state.horses.forEach(h=>{
+const rec=recommend(h);
+const adj=getAdjusted(h.id,f.id);
+const val=adj!==null?adj:(rec.feeds[f.id]||0);
+rowTotal+=val;
+html+=`<td>${val.toFixed(1)}</td>`;
 });
-html+=`<div class="grand-total"><div class="lbl">Grand Total (All Horses)</div><div class="val">${grandTotal.toFixed(1)} lb</div></div>`;
-p.innerHTML=html;
+grandTotals[f.id]=rowTotal;
+html+=`<td><strong>${rowTotal.toFixed(1)}</strong></td></tr>`;
+});
+const gt=Object.values(grandTotals).reduce((a,b)=>a+b,0);
+html+=`<tr class="total-row"><td><strong>Total</strong></td>`;
+state.horses.forEach(h=>{const rec=recommend(h);html+=`<td><strong>${getFeedTotal(h,rec).toFixed(1)}</strong></td>`});
+html+=`<td><strong>${gt.toFixed(1)} lb</strong></td></tr></table></div></div>`;
+
+// Supplements summary
+html+='<div class="card"><h3>💊 Supplement Summary</h3><div style="overflow-x:auto"><table class="summary-table"><tr><th>Supplement</th>';
+state.horses.forEach(h=>{html+=`<th>${h.emoji}</th>`});
+html+='</tr>';
+const allSuppIds=new Set();
+state.horses.forEach(h=>getSuppsForHorse(h).forEach(s=>allSuppIds.add(s.id)));
+const suppMap={};
+[...BASE_SUPPS,...TENOR_SUPPS].forEach(s=>suppMap[s.id]=s);
+allSuppIds.forEach(sid=>{
+const s=suppMap[sid];if(!s)return;
+html+=`<tr><td>${s.name}</td>`;
+state.horses.forEach(h=>{
+const hSupps=getSuppsForHorse(h);
+const has=hSupps.find(x=>x.id===sid);
+if(!has){html+='<td>—</td>';return;}
+const st=getSuppState(h.id,sid);
+const active=st!==null?st.active:has.recommended;
+const dose=st!==null&&st.dose!==undefined?st.dose:has.dose;
+html+=`<td>${active?dose+' '+has.unit:'—'}</td>`;
+});
+html+='</tr>';
+});
+html+='</table></div></div>';
+el.innerHTML=html;
 }
 
-function saveLog(){
-const logs=JSON.parse(localStorage.getItem('fc_logs')||'[]');
-const today=new Date().toISOString().slice(0,10);
-const entry={date:today,timestamp:Date.now(),horses:JSON.parse(JSON.stringify(horses))};
-const idx=logs.findIndex(l=>l.date===today);
-if(idx>=0)logs[idx]=entry;else logs.unshift(entry);
-localStorage.setItem('fc_logs',JSON.stringify(logs));
-alert('Log saved for '+today);
-}
-
+// ── Render: Logs ──
 function renderLogs(){
-const p=document.getElementById('panel-logs');
-const logs=JSON.parse(localStorage.getItem('fc_logs')||'[]');
-if(!logs.length){p.innerHTML='<div class="empty-state">📋<br>No logs yet.<br>Save your first log from the Calculator tab.</div>';return}
-let html='<div class="section-title">Saved Logs</div>';
-logs.slice(0,30).forEach((l,i)=>{
-const gt=l.horses.reduce((s,h)=>s+Object.values(h.feeds||{}).reduce((a,v)=>a+(parseFloat(v)||0),0),0);
-html+=`<div class="card" style="cursor:pointer" onclick="loadLog(${i})"><div style="display:flex;justify-content:space-between;align-items:center"><div><span class="log-date">${l.date}</span><br><span style="font-size:.78rem;color:var(--text-light)">${l.horses.map(h=>h.name+': '+Object.values(h.feeds||{}).reduce((a,v)=>a+(parseFloat(v)||0),0).toFixed(1)+'lb').join(' · ')}</span></div><div style="text-align:right"><div style="font-weight:700;color:var(--primary)">${gt.toFixed(1)} lb</div><button class="btn btn-sm btn-outline" onclick="event.stopPropagation();deleteLog(${i})">🗑</button></div></div></div>`;
+const el=document.getElementById('page-logs');
+const logs=JSON.parse(localStorage.getItem('hfc_logs')||'[]');
+let html='<div class="card"><div class="flex-between mb-8"><h3>📋 Daily Logs</h3><button class="btn btn-accent btn-sm" onclick="saveLog()">💾 Save Today</button></div>';
+if(!logs.length){
+html+='<div class="empty-state"><div class="icon">📋</div>No logs yet. Save today\'s snapshot!</div>';
+}else{
+logs.slice().reverse().forEach((l,i)=>{
+const idx=logs.length-1-i;
+html+=`<div class="log-entry"><div><div class="log-date">${l.date}</div><div style="font-size:12px;color:var(--text-light)">${l.horses.length} horses logged</div></div><div class="log-actions"><button class="btn btn-outline btn-sm" onclick="loadLog(${idx})">Load</button><button class="btn btn-sm" style="color:var(--danger)" onclick="deleteLog(${idx})">🗑️</button></div></div>`;
 });
-p.innerHTML=html;
 }
+html+='</div>';
+el.innerHTML=html;
+}
+window.saveLog=function(){
+const logs=JSON.parse(localStorage.getItem('hfc_logs')||'[]');
+const today=new Date().toISOString().slice(0,10);
+const snapshot={date:today,horses:state.horses.map(h=>{
+const rec=recommend(h);
+const feeds={};
+FEED_TYPES.forEach(f=>{if(!f.isPasture){const adj=getAdjusted(h.id,f.id);feeds[f.id]=adj!==null?adj:(rec.feeds[f.id]||0)}});
+feeds.pasture=rec.feeds.pasture;
+const supps={};
+getSuppsForHorse(h).forEach(s=>{
+const st=getSuppState(h.id,s.id);
+supps[s.id]={active:st?st.active:s.recommended,dose:st&&st.dose!==undefined?st.dose:s.dose,unit:s.unit};
+});
+return{id:h.id,name:h.name,weight:h.weight,feeds,supplements:supps};
+}),season:state.season};
+// Replace if same date exists
+const existing=logs.findIndex(l=>l.date===today);
+if(existing>=0)logs[existing]=snapshot;else logs.push(snapshot);
+localStorage.setItem('hfc_logs',JSON.stringify(logs));
+renderLogs();
+alert('✅ Log saved for '+today);
+};
+window.loadLog=function(idx){
+const logs=JSON.parse(localStorage.getItem('hfc_logs')||'[]');
+const l=logs[idx];if(!l)return;
+l.horses.forEach(lh=>{
+FEED_TYPES.forEach(f=>{if(!f.isPasture&&lh.feeds[f.id]!==undefined)setAdjusted(lh.id,f.id,lh.feeds[f.id])});
+if(lh.supplements){Object.keys(lh.supplements).forEach(sid=>{setSuppState(lh.id,sid,lh.supplements[sid])})}
+});
+state.season=l.season||state.season;
+save();alert('📋 Loaded log from '+l.date);render();
+};
+window.deleteLog=function(idx){
+if(!confirm('Delete this log?'))return;
+const logs=JSON.parse(localStorage.getItem('hfc_logs')||'[]');
+logs.splice(idx,1);
+localStorage.setItem('hfc_logs',JSON.stringify(logs));
+renderLogs();
+};
 
-function loadLog(i){
-const logs=JSON.parse(localStorage.getItem('fc_logs')||'[]');
-if(!logs[i])return;
-if(!confirm('Load log from '+logs[i].date+'? This will replace current feed data.'))return;
-horses=JSON.parse(JSON.stringify(logs[i].horses));save();
-document.querySelector('[data-tab="calculator"]').click();
-}
-function deleteLog(i){
-const logs=JSON.parse(localStorage.getItem('fc_logs')||'[]');
-if(!confirm('Delete log from '+logs[i].date+'?'))return;
-logs.splice(i,1);localStorage.setItem('fc_logs',JSON.stringify(logs));renderLogs();
-}
-
+// ── Render: Trends ──
 function renderTrends(){
-const p=document.getElementById('panel-trends');
-const logs=JSON.parse(localStorage.getItem('fc_logs')||'[]');
-if(logs.length<2){p.innerHTML='<div class="empty-state">📈<br>Need at least 2 saved logs to show trends.<br>Keep logging daily!</div>';return}
-let html='<div class="section-title">Feed Trends</div>';
-html+='<div class="horse-select" id="trend-chips"></div>';
-html+='<div class="chart-wrap"><canvas id="trendChart" height="200"></canvas></div>';
-html+='<div class="section-title" style="margin-top:16px">Weight Trends</div>';
-html+='<div class="chart-wrap"><canvas id="weightChart" height="200"></canvas></div>';
-p.innerHTML=html;
+const el=document.getElementById('page-trends');
+const logs=JSON.parse(localStorage.getItem('hfc_logs')||'[]');
+let html=horseTabs(trendHorse);
+if(logs.length<2){
+html+='<div class="empty-state"><div class="icon">📈</div>Need at least 2 log entries to show trends.</div>';
+el.innerHTML=html;
+el.querySelectorAll('.horse-tab').forEach(t=>t.addEventListener('click',e=>{trendHorse=+e.target.closest('.horse-tab').dataset.idx;renderTrends()}));
+return;
+}
+const h=state.horses[trendHorse];
+html+='<div class="card"><h3>📈 Feed Trends — '+h.name+'</h3><div class="chart-container"><canvas id="feedChart"></canvas></div></div>';
+html+='<div class="card"><h3>⚖️ Weight Over Time — '+h.name+'</h3><div class="chart-container"><canvas id="weightChart"></canvas></div></div>';
+el.innerHTML=html;
+el.querySelectorAll('.horse-tab').forEach(t=>t.addEventListener('click',e=>{trendHorse=+e.target.closest('.horse-tab').dataset.idx;renderTrends()}));
 
-const chips=document.getElementById('trend-chips');
-horses.forEach((h,i)=>{
-const ch=document.createElement('div');ch.className='horse-chip'+(i===0?' active':'');ch.textContent=h.name;
-ch.onclick=()=>{chips.querySelectorAll('.horse-chip').forEach(x=>x.classList.remove('active'));ch.classList.add('active');drawCharts(i,logs)};
-chips.appendChild(ch);
+drawChart('feedChart',logs,h.id,'feeds');
+drawChart('weightChart',logs,h.id,'weight');
+}
+
+function drawChart(canvasId,logs,horseId,type){
+const canvas=document.getElementById(canvasId);if(!canvas)return;
+const ctx=canvas.getContext('2d');
+const dpr=window.devicePixelRatio||1;
+const rect=canvas.parentElement.getBoundingClientRect();
+canvas.width=rect.width*dpr;canvas.height=rect.height*dpr;
+ctx.scale(dpr,dpr);
+const W=rect.width,H=rect.height;
+const pad={top:20,right:20,bottom:40,left:45};
+const plotW=W-pad.left-pad.right,plotH=H-pad.top-pad.bottom;
+
+const dates=logs.map(l=>l.date);
+const colors=['#5c4033','#6b8e23','#2980b9','#e67e22','#c0392b','#8e44ad','#16a085'];
+
+if(type==='weight'){
+const vals=logs.map(l=>{const lh=l.horses.find(x=>x.id===horseId);return lh?lh.weight:null}).filter(v=>v!==null);
+if(vals.length<2){ctx.fillStyle='#999';ctx.fillText('Not enough data',W/2-40,H/2);return}
+const min=Math.min(...vals)*0.95,max=Math.max(...vals)*1.05;
+ctx.strokeStyle='#e0d5cc';ctx.lineWidth=1;
+for(let i=0;i<5;i++){
+const y=pad.top+plotH*(1-i/4);
+ctx.beginPath();ctx.moveTo(pad.left,y);ctx.lineTo(W-pad.right,y);ctx.stroke();
+ctx.fillStyle='#999';ctx.font='11px sans-serif';ctx.textAlign='right';
+ctx.fillText((min+(max-min)*i/4).toFixed(0),pad.left-5,y+4);
+}
+ctx.strokeStyle=colors[0];ctx.lineWidth=2;ctx.beginPath();
+vals.forEach((v,i)=>{
+const x=pad.left+plotW*i/(vals.length-1);
+const y=pad.top+plotH*(1-(v-min)/(max-min));
+i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+});ctx.stroke();
+dates.forEach((d,i)=>{if(i%Math.ceil(dates.length/6)===0||i===dates.length-1){
+ctx.fillStyle='#999';ctx.font='10px sans-serif';ctx.textAlign='center';
+ctx.fillText(d.slice(5),pad.left+plotW*i/(dates.length-1),H-pad.bottom+16);
+}});
+}else{
+const feedIds=FEED_TYPES.filter(f=>!f.isPasture).map(f=>f.id);
+const series=feedIds.map(fid=>logs.map(l=>{
+const lh=l.horses.find(x=>x.id===horseId);
+return lh&&lh.feeds&&lh.feeds[fid]!==undefined?lh.feeds[fid]:0;
+}));
+const maxVal=Math.max(5,...series.flat())*1.1;
+ctx.strokeStyle='#e0d5cc';ctx.lineWidth=1;
+for(let i=0;i<5;i++){
+const y=pad.top+plotH*(1-i/4);
+ctx.beginPath();ctx.moveTo(pad.left,y);ctx.lineTo(W-pad.right,y);ctx.stroke();
+ctx.fillStyle='#999';ctx.font='11px sans-serif';ctx.textAlign='right';
+ctx.fillText((maxVal*i/4).toFixed(1),pad.left-5,y+4);
+}
+series.forEach((vals,si)=>{
+if(vals.every(v=>v===0))return;
+ctx.strokeStyle=colors[si%colors.length];ctx.lineWidth=2;ctx.beginPath();
+vals.forEach((v,i)=>{
+const x=pad.left+plotW*i/Math.max(1,vals.length-1);
+const y=pad.top+plotH*(1-v/maxVal);
+i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+});ctx.stroke();
 });
-drawCharts(0,logs);
+// Legend
+let lx=pad.left;
+feedIds.forEach((fid,i)=>{
+const s=series[i];if(s.every(v=>v===0))return;
+ctx.fillStyle=colors[i%colors.length];
+ctx.fillRect(lx,H-12,10,10);
+ctx.fillStyle='#666';ctx.font='9px sans-serif';ctx.textAlign='left';
+const label=FEED_TYPES.find(f=>f.id===fid).name.split(' ')[0];
+ctx.fillText(label,lx+12,H-3);lx+=ctx.measureText(label).width+20;
+});
+dates.forEach((d,i)=>{if(i%Math.ceil(dates.length/6)===0||i===dates.length-1){
+ctx.fillStyle='#999';ctx.font='10px sans-serif';ctx.textAlign='center';
+ctx.fillText(d.slice(5),pad.left+plotW*i/Math.max(1,dates.length-1),H-pad.bottom+16);
+}});
+}
 }
 
-function drawCharts(hi,logs){
-const sorted=[...logs].sort((a,b)=>a.date.localeCompare(b.date)).slice(-30);
-// Feed chart
-const fc=document.getElementById('trendChart');const ctx=fc.getContext('2d');
-const W=fc.parentElement.clientWidth-24;fc.width=W*2;fc.height=400;fc.style.height='200px';
-ctx.scale(2,2);const cw=W,ch=200;
-ctx.clearRect(0,0,cw,ch);
-const vals=sorted.map(l=>{const h=l.horses[hi];return h?Object.values(h.feeds||{}).reduce((s,v)=>s+(parseFloat(v)||0),0):0});
-const maxV=Math.max(...vals,1)*1.2;
-const pad={t:20,b:30,l:40,r:10};const gw=cw-pad.l-pad.r;const gh=ch-pad.t-pad.b;
-// Grid
-ctx.strokeStyle='#E0D8D0';ctx.lineWidth=.5;ctx.font='10px sans-serif';ctx.fillStyle='#999';
-for(let i=0;i<=4;i++){const y=pad.t+gh-gh*(i/4);ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(cw-pad.r,y);ctx.stroke();ctx.fillText((maxV*i/4).toFixed(1),2,y+3)}
-// Line
-ctx.beginPath();ctx.strokeStyle='#5B4A3F';ctx.lineWidth=2;
-vals.forEach((v,i)=>{const x=pad.l+i*(gw/(vals.length-1||1));const y=pad.t+gh-gh*(v/maxV);i===0?ctx.moveTo(x,y):ctx.lineTo(x,y)});ctx.stroke();
-// Dots
-vals.forEach((v,i)=>{const x=pad.l+i*(gw/(vals.length-1||1));const y=pad.t+gh-gh*(v/maxV);ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);ctx.fillStyle='#5B4A3F';ctx.fill();ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x,y,2,0,Math.PI*2);ctx.fill()});
-// Labels
-ctx.fillStyle='#999';ctx.font='9px sans-serif';ctx.textAlign='center';
-sorted.forEach((l,i)=>{if(sorted.length<=10||i%Math.ceil(sorted.length/8)===0){const x=pad.l+i*(gw/(vals.length-1||1));ctx.fillText(l.date.slice(5),x,ch-5)}});
-ctx.textAlign='start';
-ctx.fillStyle='var(--text-light)';ctx.font='11px sans-serif';ctx.fillText('Daily Feed (lb)',pad.l,12);
-
-// Weight chart
-const wc=document.getElementById('weightChart');const wctx=wc.getContext('2d');
-wc.width=W*2;wc.height=400;wc.style.height='200px';wctx.scale(2,2);
-wctx.clearRect(0,0,cw,ch);
-const wvals=sorted.map(l=>{const h=l.horses[hi];return h?h.weight:0});
-const wmin=Math.min(...wvals)*0.95;const wmax=Math.max(...wvals)*1.05;const wr=wmax-wmin||1;
-wctx.strokeStyle='#E0D8D0';wctx.lineWidth=.5;wctx.font='10px sans-serif';wctx.fillStyle='#999';
-for(let i=0;i<=4;i++){const y=pad.t+gh-gh*(i/4);wctx.beginPath();wctx.moveTo(pad.l,y);wctx.lineTo(cw-pad.r,y);wctx.stroke();wctx.fillText((wmin+wr*i/4).toFixed(0),2,y+3)}
-wctx.beginPath();wctx.strokeStyle='#4A7C59';wctx.lineWidth=2;
-wvals.forEach((v,i)=>{const x=pad.l+i*(gw/(wvals.length-1||1));const y=pad.t+gh-gh*((v-wmin)/wr);i===0?wctx.moveTo(x,y):wctx.lineTo(x,y)});wctx.stroke();
-wvals.forEach((v,i)=>{const x=pad.l+i*(gw/(wvals.length-1||1));const y=pad.t+gh-gh*((v-wmin)/wr);wctx.beginPath();wctx.arc(x,y,4,0,Math.PI*2);wctx.fillStyle='#4A7C59';wctx.fill();wctx.fillStyle='#fff';wctx.beginPath();wctx.arc(x,y,2,0,Math.PI*2);wctx.fill()});
-wctx.fillStyle='#999';wctx.font='9px sans-serif';wctx.textAlign='center';
-sorted.forEach((l,i)=>{if(sorted.length<=10||i%Math.ceil(sorted.length/8)===0){const x=pad.l+i*(gw/(wvals.length-1||1));wctx.fillText(l.date.slice(5),x,ch-5)}});
-wctx.textAlign='start';wctx.fillStyle='var(--text-light)';wctx.font='11px sans-serif';wctx.fillText('Weight (lb)',pad.l,12);
-}
-
+// ── Render: Settings ──
 function renderSettings(){
-const p=document.getElementById('panel-settings');
-let html='<div class="section-title">Horse Profiles</div>';
-horses.forEach((h,i)=>{
-html+=`<div class="card"><h3>🐴 ${h.name}</h3>
-<div class="row"><div><label>Name</label><input type="text" value="${h.name}" onchange="horses[${i}].name=this.value;save()"></div>
-<div><label>Weight (lb)</label><input type="number" value="${h.weight}" min="100" step="10" onchange="horses[${i}].weight=+this.value;save()"></div></div>
-<label>Conditions</label><div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">`;
-CONDITIONS.forEach(c=>{
-const on=h.conditions.includes(c);
-html+=`<span class="badge ${on?'badge-danger':'badge-info'}" style="cursor:pointer" onclick="toggleCond(${i},'${c}')">${on?'✓ ':''} ${c}</span>`;
+const el=document.getElementById('page-settings');
+let html='<div class="card"><h3>🌿 Season</h3><div class="season-toggle">';
+['summer','winter'].forEach(s=>{
+html+=`<div class="season-btn${state.season===s?' active':''}" onclick="setSeason('${s}')">${s==='summer'?'☀️ Summer':'❄️ Winter'}</div>`;
 });
-html+=`</div></div>`;
+html+='</div><div style="font-size:12px;color:var(--text-light)">Summer = more pasture available, Winter = more hay needed</div></div>';
+
+state.horses.forEach((h,hi)=>{
+html+=`<div class="card horse-settings-card"><h3>${h.emoji} ${h.name}</h3>`;
+html+=`<div class="form-group"><label>Name</label><input value="${h.name}" onchange="updateHorse(${hi},'name',this.value)"></div>`;
+html+=`<div class="form-group"><label>Weight (lb)</label><input type="number" value="${h.weight}" onchange="updateHorse(${hi},'weight',+this.value)"></div>`;
+html+=`<div class="form-group"><label>Conditions</label><div style="display:flex;flex-wrap:wrap;gap:6px">`;
+ALL_CONDITIONS.forEach(c=>{
+const active=h.conditions.includes(c);
+html+=`<div class="condition-chip${active?' active':''}" onclick="toggleCondition(${hi},'${c}')">${CONDITION_LABELS[c]}</div>`;
 });
-html+=`<div class="flex-end" style="margin-top:16px"><button class="btn btn-outline" onclick="resetData()">🔄 Reset to Defaults</button><button class="btn btn-danger" onclick="clearAllData()">🗑 Clear All Data</button></div>`;
-p.innerHTML=html;
+html+='</div></div>';
+html+=`<div class="form-group"><label>Activity Level</label><div class="activity-selector">`;
+ACTIVITIES.forEach(a=>{
+html+=`<div class="activity-opt${h.activity===a.id?' active':''}" onclick="setActivity(${hi},'${a.id}')">${a.label}</div>`;
+});
+html+='</div></div></div>';
+});
+
+html+='<div class="card"><button class="btn btn-danger btn-block" onclick="resetDefaults()">🔄 Reset All to Defaults</button></div>';
+el.innerHTML=html;
 }
-function toggleCond(i,c){
-const idx=horses[i].conditions.indexOf(c);
-if(idx>=0)horses[i].conditions.splice(idx,1);else horses[i].conditions.push(c);
+window.setSeason=function(s){state.season=s;save();renderSettings()};
+window.updateHorse=function(i,k,v){state.horses[i][k]=v;save();renderSettings()};
+window.toggleCondition=function(i,c){
+const h=state.horses[i];
+const idx=h.conditions.indexOf(c);
+if(idx>=0)h.conditions.splice(idx,1);else h.conditions.push(c);
 save();renderSettings();
-}
-function resetData(){if(!confirm('Reset all horses to defaults?'))return;horses=JSON.parse(JSON.stringify(DEFAULT_HORSES));save();renderSettings()}
-function clearAllData(){if(!confirm('Clear ALL data including logs?'))return;localStorage.removeItem('fc_horses');localStorage.removeItem('fc_logs');horses=JSON.parse(JSON.stringify(DEFAULT_HORSES));save();renderSettings()}
+};
+window.setActivity=function(i,a){state.horses[i].activity=a;save();renderSettings()};
+window.resetDefaults=function(){
+if(!confirm('Reset everything to defaults? This will clear all adjustments.'))return;
+state=defaultState();save();
+localStorage.removeItem('hfc_logs');
+selectedHorse=0;render();
+};
 
-// Init
-renderCalc();
+// ── Init ──
+render();
 
-// Service Worker registration (inline)
+// ── Service Worker ──
 if('serviceWorker' in navigator){
-const swCode=`self.addEventListener('install',e=>self.skipWaiting());self.addEventListener('activate',e=>self.clients.claim());self.addEventListener('fetch',e=>e.respondWith(fetch(e.request).catch(()=>caches.match(e.request))));`;
+const swCode=`self.addEventListener('install',e=>self.skipWaiting());self.addEventListener('activate',e=>self.clients.claim());self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).catch(()=>new Response('Offline',{status:503}))))});`;
 const blob=new Blob([swCode],{type:'application/javascript'});
 navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(()=>{});
 }
