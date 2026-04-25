@@ -158,8 +158,8 @@ const CONDITION_BADGE={senior:'badge-senior',teeth:'badge-teeth',digestive:'badg
 
 const ALL_SUPPS=[
 {id:'balanced_gold',name:'Triple Crown Balanced Gold',desc:'Ration balancer',dose:4,unit:'oz',forAll:true},
-{id:'amino_trace',name:'Amino Trace+',desc:'Trace minerals + amino acids',dose:2,unit:'oz',forAll:true},
-{id:'daily_red',name:'Daily Red Fortified',desc:'Vitamin/mineral',dose:2,unit:'oz',forAll:true},
+{id:'amino_trace',name:'Amino Trace+',desc:'Trace minerals + amino acids',dose:2,unit:'oz',forAll:true,primary:true},
+{id:'daily_red',name:'Daily Red Fortified',desc:'Vitamin/mineral (salt-based)',dose:2,unit:'oz',forAll:false},
 {id:'digest_911',name:'Digest 911',desc:'Digestive support',dose:1,unit:'oz',forAll:true},
 {id:'turmeric',name:'Turmeric for Horse',desc:'Anti-inflammatory',dose:1,unit:'tbsp',forAll:true},
 {id:'super_sport',name:'Purina Super Sport',desc:'Amino acids for muscle support',dose:4,unit:'oz'},
@@ -334,6 +334,12 @@ return total;
 }
 
 // ── Supplements ──
+// Interaction warnings between supplements
+const SUPP_INTERACTIONS=[
+{supps:['amino_trace','daily_red'],severity:'warning',
+message:'⚠️ Amino Trace+ and Daily Red Fortified overlap significantly in zinc, copper, manganese, selenium, iodine, and vitamins A/D/E. Combining both may result in excessive selenium (~3 mg, 4.6× daily req) and iodine (~7.7 mg, 3.5× daily req). Consider using only one, or reduce Daily Red to 1 oz.'}
+];
+
 function getSuppsForHorse(h){
 const c=h.conditions;
 return ALL_SUPPS.map(s=>{
@@ -494,6 +500,13 @@ if(otherSupps.length){
 html+='<div style="font-size:12px;font-weight:700;color:var(--text-light);margin:12px 0 6px;text-transform:uppercase;letter-spacing:.5px">Other Supplements</div>';
 otherSupps.forEach(renderSuppRow);
 }
+// Interaction warnings
+const activeIds=supps.filter(s=>{const st=getSuppState(h.id,s.id);return st!==null?st.active:s.recommended}).map(s=>s.id);
+SUPP_INTERACTIONS.forEach(inter=>{
+if(inter.supps.every(sid=>activeIds.includes(sid))){
+html+=`<div style="background:#fff3e0;border:1.5px solid var(--warning);border-radius:8px;padding:10px 12px;margin-top:10px;font-size:13px;color:#7a4a00;display:flex;align-items:flex-start;gap:8px"><span style="font-size:18px;flex-shrink:0">⚠️</span><div>${inter.message}</div></div>`;
+}
+});
 html+='</div>';
 el.innerHTML=html;
 el.querySelectorAll('.horse-tab').forEach(t=>t.addEventListener('click',e=>{
