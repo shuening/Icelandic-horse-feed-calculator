@@ -377,6 +377,9 @@ html+=`<div class="feed-row">
 });
 html+='</div>';
 
+// Reset button
+html+='<div style="text-align:right;margin-bottom:8px"><button class="btn btn-outline btn-sm" onclick="resetFeedAdj(\''+h.id+'\')" title="Reset to recommended values">🔄 Reset to Recommended</button></div>';
+
 if(rec.notes.length){
 html+='<div class="card"><h3>📝 Feeding Notes</h3>';
 rec.notes.forEach(n=>{html+=`<div class="notes">${n}</div>`;});
@@ -398,6 +401,10 @@ renderRecs();
 window.setFeed=function(hid,fid,val){
 setAdjusted(hid,fid,Math.max(0,+parseFloat(val).toFixed(1)));
 renderRecs();
+};
+window.resetFeedAdj=function(hid){
+Object.keys(state.adjustments).forEach(k=>{if(k.startsWith(hid+'_'))delete state.adjustments[k]});
+save();renderRecs();
 };
 
 // ── Render: Supplements ──
@@ -671,7 +678,13 @@ window.updateHorse=function(i,k,v){state.horses[i][k]=v;save();renderSettings()}
 window.toggleCondition=function(i,c){
 const h=state.horses[i];
 const idx=h.conditions.indexOf(c);
-if(idx>=0)h.conditions.splice(idx,1);else h.conditions.push(c);
+if(idx>=0){h.conditions.splice(idx,1)}
+else{
+h.conditions.push(c);
+// Mutual exclusion: overweight/ir ↔ healthy
+if(c==='overweight'||c==='ir'){h.conditions=h.conditions.filter(x=>x!=='healthy')}
+if(c==='healthy'){h.conditions=h.conditions.filter(x=>x!=='overweight'&&x!=='ir')}
+}
 save();renderSettings();
 };
 window.setActivity=function(i,a){state.horses[i].activity=a;save();renderSettings()};
