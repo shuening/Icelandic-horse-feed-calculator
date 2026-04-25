@@ -181,15 +181,41 @@ let selectedHorse=0;
 let selectedTab='recs';
 let trendHorse=0;
 
+// Auto-detect season based on US DST
+// Summer = 2nd Sunday of March to 1st Sunday of November
+function getAutoSeason(){
+const now=new Date();
+const year=now.getFullYear();
+// 2nd Sunday of March
+const mar1=new Date(year,2,1);
+const marSun2=new Date(year,2,8+(7-mar1.getDay())%7+7);
+// Actually: 2nd Sunday = day 8..14 that is Sunday
+const dstStart=new Date(year,2,14-(new Date(year,2,1).getDay()+6)%7);
+// Simpler: find 2nd Sunday of March
+const marchFirst=new Date(year,2,1).getDay();// 0=Sun
+const secondSunMar=14-((marchFirst+6)%7);
+const dstOn=new Date(year,2,secondSunMar);
+// 1st Sunday of November
+const novFirst=new Date(year,10,1).getDay();
+const firstSunNov=1+((7-novFirst)%7);
+const dstOff=new Date(year,10,firstSunNov);
+return(now>=dstOn&&now<dstOff)?'summer':'winter';
+}
+
 function defaultState(){
 return{
 horses:JSON.parse(JSON.stringify(DEFAULT_HORSES)),
-season:'summer',
+season:getAutoSeason(),
 feeds:{},supplements:{},adjustments:{}
 };
 }
 function loadState(){
-try{const s=localStorage.getItem('hfc_state');if(s)return JSON.parse(s)}catch(e){}
+try{const s=localStorage.getItem('hfc_state');if(s){
+const parsed=JSON.parse(s);
+// Auto-update season on each load
+parsed.season=getAutoSeason();
+return parsed;
+}}catch(e){}
 return defaultState();
 }
 function save(){localStorage.setItem('hfc_state',JSON.stringify(state))}
