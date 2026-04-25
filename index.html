@@ -152,19 +152,32 @@ const ALL_CONDITIONS=['senior','teeth','digestive','pssm','hoof','ir','overweigh
 const CONDITION_LABELS={senior:'Senior',teeth:'Teeth Problem',digestive:'Digestive Sensitive',pssm:'PSSM',hoof:'Hoof Care',ir:'Insulin Resistant',overweight:'Overweight',healthy:'Healthy'};
 const CONDITION_BADGE={senior:'badge-senior',teeth:'badge-teeth',digestive:'badge-digestive',pssm:'badge-pssm',hoof:'badge-hoof',ir:'badge-ir',overweight:'badge-overweight',healthy:'badge-healthy'};
 
-const BASE_SUPPS=[
+const ALL_SUPPS=[
 {id:'balanced_gold',name:'Triple Crown Balanced Gold',desc:'Ration balancer',dose:4,unit:'oz',forAll:true},
 {id:'amino_trace',name:'Amino Trace+',desc:'Trace minerals + amino acids',dose:2,unit:'oz',forAll:true},
 {id:'daily_red',name:'Daily Red Fortified',desc:'Vitamin/mineral',dose:2,unit:'oz',forAll:true},
-{id:'digest_911',name:'Digest 911',desc:'Digestive support',dose:1,unit:'oz',forAll:true,digestiveRec:true},
-{id:'turmeric',name:'Turmeric for Horse',desc:'Anti-inflammatory',dose:1,unit:'tbsp',forAll:true}
+{id:'digest_911',name:'Digest 911',desc:'Digestive support',dose:1,unit:'oz',forAll:true},
+{id:'turmeric',name:'Turmeric for Horse',desc:'Anti-inflammatory',dose:1,unit:'tbsp',forAll:true},
+{id:'super_sport',name:'Purina Super Sport',desc:'Amino acids for muscle support',dose:4,unit:'oz'},
+{id:'gut_gold',name:'Assured Gut Gold',desc:'Gut health & microbiome',dose:1,unit:'oz'},
+{id:'weight_accel',name:'Senior Weight Accelerator',desc:'Calorie-dense weight support',dose:8,unit:'oz'},
+{id:'vit_e',name:'Health-E Max Vitamin E',desc:'Antioxidant & neuromuscular support',dose:1,unit:'scoop'}
 ];
-const TENOR_SUPPS=[
-{id:'super_sport',name:'Purina Super Sport',desc:'Amino acids for muscle (PSSM)',dose:4,unit:'oz'},
-{id:'gut_gold',name:'Assured Gut Gold',desc:'Gut health',dose:1,unit:'oz'},
-{id:'weight_accel',name:'Senior Weight Accelerator',desc:'Weight maintenance',dose:8,unit:'oz'},
-{id:'vit_e',name:'Health-E Max Vitamin E',desc:'Critical for PSSM',dose:1,unit:'scoop'}
+
+// Condition → supplement recommendation rules
+// Each rule: {suppId, conditions (any match triggers), reason}
+const SUPP_RULES=[
+{suppId:'digest_911',conditions:['digestive'],reason:'Digestive sensitive → gut support'},
+{suppId:'gut_gold',conditions:['digestive'],reason:'Digestive sensitive → microbiome support'},
+{suppId:'super_sport',conditions:['pssm'],reason:'PSSM → amino acids for muscle maintenance'},
+{suppId:'vit_e',conditions:['pssm'],reason:'PSSM → critical antioxidant for neuromuscular health'},
+{suppId:'weight_accel',conditions:['senior'],reason:'Senior → calorie-dense support for weight maintenance'},
+{suppId:'turmeric',conditions:['hoof','senior','pssm'],reason:'Anti-inflammatory support'},
+{suppId:'amino_trace',conditions:['hoof'],reason:'Hoof care → trace minerals including biotin & zinc'},
 ];
+// Backward compat helpers
+const BASE_SUPPS=ALL_SUPPS.filter(s=>s.forAll);
+const TENOR_SUPPS=ALL_SUPPS.filter(s=>!s.forAll);
 
 const DEFAULT_HORSES=[
 {id:'tenor',name:'Tenor',weight:700,conditions:['senior','teeth','digestive','pssm','hoof'],activity:'moderate',emoji:'🐎'},
@@ -318,13 +331,24 @@ return total;
 
 // ── Supplements ──
 function getSuppsForHorse(h){
-let supps=BASE_SUPPS.map(s=>({...s,recommended:true}));
-// Show all supps for all horses; Tenor-specific ones default on for Tenor, off for others
-TENOR_SUPPS.forEach(s=>{
-const isRecommended=(h.id==='tenor'||h.conditions.includes('pssm'));
-supps.push({...s,recommended:isRecommended});
+const c=h.conditions;
+return ALL_SUPPS.map(s=>{
+let recommended=!!s.forAll; // base supps always recommended
+let reasons=[];
+// Check condition-based rules
+SUPP_RULES.forEach(rule=>{
+if(rule.suppId===s.id && rule.conditions.some(cond=>c.includes(cond))){
+recommended=true;
+reasons.push(rule.reason);
+}
 });
-return supps;
+// IR/overweight: reduce calorie-dense supps
+if(s.id==='weight_accel'&&(c.includes('ir')||c.includes('overweight'))){
+recommended=false;
+reasons=['⚠️ Not recommended for IR/overweight — calorie-dense'];
+}
+return{...s,recommended,reasons};
+});
 }
 function getSuppState(horseId,suppId){
 const key='supp_'+horseId+'_'+suppId;
@@ -443,17 +467,29 @@ if(!h){el.innerHTML='';return;}
 const supps=getSuppsForHorse(h);
 let html=horseTabs(selectedHorse);
 html+='<div class="card">';
-supps.forEach(s=>{
+// Separate recommended vs other
+const recSupps=supps.filter(s=>s.recommended);
+const otherSupps=supps.filter(s=>!s.recommended);
+if(recSupps.length){
+html+='<div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">✨ Recommended for '+h.name+'</div>';
+}
+function renderSuppRow(s){
 const st=getSuppState(h.id,s.id);
 const active=st!==null?st.active:s.recommended;
 const dose=st!==null&&st.dose!==undefined?st.dose:s.dose;
-const highlight=s.digestiveRec&&h.conditions.includes('digestive');
-html+=`<div class="supp-row${highlight?' style="background:#f0faf0"':''}">
+const hasReasons=s.reasons&&s.reasons.length>0;
+const highlight=s.recommended&&hasReasons;
+html+=`<div class="supp-row" style="${highlight?'background:#f0faf0;border-radius:8px;padding:6px 8px;margin:2px 0':''}">
 <label class="supp-toggle"><input type="checkbox" ${active?'checked':''} onchange="toggleSupp('${h.id}','${s.id}',this.checked,${dose})"><span class="slider"></span></label>
-<div class="supp-info"><div class="name">${s.name}</div><div class="desc">${s.desc}${highlight?' ⭐ Recommended':''}${!s.forAll&&s.recommended?' ⭐ Default for '+h.name:''}</div></div>
+<div class="supp-info"><div class="name">${s.name}</div><div class="desc">${s.desc}</div>${hasReasons?'<div style="font-size:11px;color:var(--accent);margin-top:2px">'+s.reasons.join(' · ')+'</div>':''}</div>
 <div class="supp-dose"><input type="number" step="0.5" min="0" value="${dose}" onchange="changeSuppDose('${h.id}','${s.id}',this.value,${active})" ${!active?'disabled':''}><span class="unit">${s.unit}</span></div>
 </div>`;
-});
+}
+recSupps.forEach(renderSuppRow);
+if(otherSupps.length){
+html+='<div style="font-size:12px;font-weight:700;color:var(--text-light);margin:12px 0 6px;text-transform:uppercase;letter-spacing:.5px">Other Supplements</div>';
+otherSupps.forEach(renderSuppRow);
+}
 html+='</div>';
 el.innerHTML=html;
 el.querySelectorAll('.horse-tab').forEach(t=>t.addEventListener('click',e=>{
@@ -501,7 +537,7 @@ html+='</tr>';
 const allSuppIds=new Set();
 state.horses.forEach(h=>getSuppsForHorse(h).forEach(s=>allSuppIds.add(s.id)));
 const suppMap={};
-[...BASE_SUPPS,...TENOR_SUPPS].forEach(s=>suppMap[s.id]=s);
+ALL_SUPPS.forEach(s=>suppMap[s.id]=s);
 allSuppIds.forEach(sid=>{
 const s=suppMap[sid];if(!s)return;
 html+=`<tr><td>${s.name}</td>`;
