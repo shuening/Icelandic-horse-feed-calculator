@@ -5,15 +5,16 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#5c4033">
+<meta name="theme-color" content="#4a3728">
 <title>Icelandic Horse Feed Calculator</title>
 <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiSWNlbGFuZGljIEhvcnNlIEZlZWQgQ2FsY3VsYXRvciIsInNob3J0X25hbWUiOiJGZWVkQ2FsYyIsInN0YXJ0X3VybCI6Ii4iLCJkaXNwbGF5Ijoic3RhbmRhbG9uZSIsImJhY2tncm91bmRfY29sb3IiOiIjZjVmMGViIiwidGhlbWVfY29sb3IiOiIjNWM0MDMzIiwiaWNvbnMiOlt7InNyYyI6ImRhdGE6aW1hZ2Uvc3ZnK3htbCw8c3ZnIHhtbG5zPSdodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2Zycgdmlld0JveD0nMCAwIDEwMCAxMDAnPjx0ZXh0IHk9Jy45ZW0nIGZvbnQtc2l6ZT0nOTAnPvCfkI48L3RleHQ+PC9zdmc+Iiwic2l6ZXMiOiJhbnkiLCJ0eXBlIjoiaW1hZ2Uvc3ZnK3htbCJ9XX0=">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
---bg:#f5f0eb;--card:#fff;--primary:#5c4033;--primary-light:#8b6f5e;--accent:#6b8e23;
---accent-light:#8fbc3a;--text:#3a2e28;--text-light:#7a6e68;--border:#e0d5cc;
---danger:#c0392b;--warning:#e67e22;--success:#27ae60;--info:#2980b9;
+/* Colorblind-friendly palette (Wong / IBM safe) */
+--bg:#f5f0eb;--card:#fff;--primary:#4a3728;--primary-light:#7a6455;--accent:#0072b2;
+--accent-light:#56b4e9;--text:#2e2420;--text-light:#6b5f59;--border:#e0d5cc;
+--danger:#d55e00;--warning:#e69f00;--success:#009e73;--info:#0072b2;
 --shadow:0 2px 8px rgba(0,0,0,.08);--radius:12px;
 }
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:72px}
@@ -30,14 +31,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin-bottom:16px;border:1px solid var(--border)}
 .card h3{font-size:16px;margin-bottom:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;text-transform:uppercase;letter-spacing:.3px}
-.badge-senior{background:#f0e6d3;color:#8b6914}
-.badge-pssm{background:#fde8e8;color:#c0392b}
-.badge-teeth{background:#fef3e2;color:#e67e22}
-.badge-digestive{background:#e8f6e8;color:#27ae60}
-.badge-ir{background:#fde8e8;color:#c0392b}
-.badge-overweight{background:#fef3e2;color:#e67e22}
-.badge-hoof{background:#e8eef6;color:#2980b9}
-.badge-healthy{background:#e8f6e8;color:#27ae60}
+/* Colorblind-safe badge colors — high contrast, distinguishable shapes via text */
+.badge-senior{background:#f0e6d3;color:#7a5c00}
+.badge-pssm{background:#fce4d6;color:#d55e00}
+.badge-teeth{background:#fff2cc;color:#b27300}
+.badge-digestive{background:#d9f2e6;color:#006b52}
+.badge-ir{background:#fce4d6;color:#d55e00}
+.badge-overweight{background:#fff2cc;color:#b27300}
+.badge-hoof{background:#dce9f7;color:#005a9e}
+.badge-healthy{background:#d9f2e6;color:#006b52}
 .target-bar{height:8px;background:#e8e0d8;border-radius:4px;margin:8px 0;overflow:visible;position:relative}
 .target-fill{height:100%;border-radius:4px;transition:width .4s ease;position:relative}
 .target-fill.under{background:var(--warning)}
@@ -479,7 +481,7 @@ const active=st!==null?st.active:s.recommended;
 const dose=st!==null&&st.dose!==undefined?st.dose:s.dose;
 const hasReasons=s.reasons&&s.reasons.length>0;
 const highlight=s.recommended&&hasReasons;
-html+=`<div class="supp-row" style="${highlight?'background:#f0faf0;border-radius:8px;padding:6px 8px;margin:2px 0':''}">
+html+=`<div class="supp-row" style="${highlight?'background:#e6f3f0;border-radius:8px;padding:6px 8px;margin:2px 0':''}">
 <label class="supp-toggle"><input type="checkbox" ${active?'checked':''} onchange="toggleSupp('${h.id}','${s.id}',this.checked,${dose})"><span class="slider"></span></label>
 <div class="supp-info"><div class="name">${s.name}</div><div class="desc">${s.desc}</div>${hasReasons?'<div style="font-size:11px;color:var(--accent);margin-top:2px">'+s.reasons.join(' · ')+'</div>':''}</div>
 <div class="supp-dose"><input type="number" step="0.5" min="0" value="${dose}" onchange="changeSuppDose('${h.id}','${s.id}',this.value,${active})" ${!active?'disabled':''}><span class="unit">${s.unit}</span></div>
@@ -645,7 +647,8 @@ const pad={top:20,right:20,bottom:40,left:45};
 const plotW=W-pad.left-pad.right,plotH=H-pad.top-pad.bottom;
 
 const dates=logs.map(l=>l.date);
-const colors=['#5c4033','#6b8e23','#2980b9','#e67e22','#c0392b','#8e44ad','#16a085'];
+/* Wong colorblind-safe palette for chart lines */
+const colors=['#000000','#e69f00','#56b4e9','#009e73','#d55e00','#cc79a7','#0072b2'];
 
 if(type==='weight'){
 const vals=logs.map(l=>{const lh=l.horses.find(x=>x.id===horseId);return lh?lh.weight:null}).filter(v=>v!==null);
