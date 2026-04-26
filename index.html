@@ -7,6 +7,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#4a3728">
 <title>Icelandic Horse Feed Calculator</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiSWNlbGFuZGljIEhvcnNlIEZlZWQgQ2FsY3VsYXRvciIsInNob3J0X25hbWUiOiJGZWVkQ2FsYyIsInN0YXJ0X3VybCI6Ii4iLCJkaXNwbGF5Ijoic3RhbmRhbG9uZSIsImJhY2tncm91bmRfY29sb3IiOiIjZjVmMGViIiwidGhlbWVfY29sb3IiOiIjNWM0MDMzIiwiaWNvbnMiOlt7InNyYyI6ImRhdGE6aW1hZ2Uvc3ZnK3htbCw8c3ZnIHhtbG5zPSdodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2Zycgdmlld0JveD0nMCAwIDEwMCAxMDAnPjx0ZXh0IHk9Jy45ZW0nIGZvbnQtc2l6ZT0nOTAnPvCfkI48L3RleHQ+PC9zdmc+Iiwic2l6ZXMiOiJhbnkiLCJ0eXBlIjoiaW1hZ2Uvc3ZnK3htbCJ9XX0=">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -109,6 +111,12 @@ canvas{width:100%!important;height:100%!important}
 .horse-settings-card{margin-bottom:16px}
 .condition-chip{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:12px;border:1px solid var(--border);background:var(--bg);cursor:pointer;transition:.15s}
 .condition-chip.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.sync-status{display:flex;align-items:center;gap:6px;font-size:12px;padding:6px 10px;border-radius:8px;margin-bottom:8px}
+.sync-status.online{background:#d9f2e6;color:#006b52}
+.sync-status.offline{background:#fce4d6;color:#d55e00}
+.sync-status .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.sync-status.online .dot{background:#009e73}
+.sync-status.offline .dot{background:#d55e00}
 .activity-selector{display:flex;gap:6px;flex-wrap:wrap}
 .activity-opt{padding:6px 12px;border-radius:20px;font-size:12px;border:2px solid var(--border);cursor:pointer;background:var(--card);transition:.2s}
 .activity-opt.active{border-color:var(--accent);background:var(--accent);color:#fff}
@@ -140,6 +148,79 @@ input[type=number]{-moz-appearance:textfield}
 
 <script>
 'use strict';
+// ── Firebase Setup ──
+const firebaseConfig={
+apiKey:'AIzaSyBz5TOfsa68aC5gq5xPdx7DB2MNDJhtK94',
+authDomain:'horse-feed-calc.firebaseapp.com',
+databaseURL:'https://horse-feed-calc-default-rtdb.firebaseio.com',
+projectId:'horse-feed-calc',
+storageBucket:'horse-feed-calc.firebasestorage.app',
+messagingSenderId:'1068083960228',
+appId:'1:1068083960228:web:b741c2a96ba2b9bdb54931'
+};
+const fbApp=firebase.initializeApp(firebaseConfig);
+const fbDb=firebase.database();
+let householdId=localStorage.getItem('hfc_household')||null;
+let fbRef=null;
+let fbConnected=false;
+let syncPaused=false; // prevent echo loops
+
+function initFirebaseSync(){
+if(!householdId)return;
+fbRef=fbDb.ref('households/'+householdId);
+// Listen for remote changes
+fbRef.on('value',snap=>{
+if(syncPaused)return;
+const remote=snap.val();
+if(!remote)return;
+const remoteTs=remote._ts||0;
+const localTs=state._ts||0;
+if(remoteTs>localTs){
+// Remote is newer — merge
+if(remote.adjustments)state.adjustments=remote.adjustments;
+if(remote.supplements)state.supplements=remote.supplements;
+if(remote.horses)state.horses=remote.horses;
+if(remote.season)state.season=remote.season;
+state._ts=remoteTs;
+localStorage.setItem('hfc_state',JSON.stringify(state));
+render();
+}
+});
+// Connection status
+fbDb.ref('.info/connected').on('value',snap=>{
+fbConnected=!!snap.val();
+if(typeof renderSettings==='function'&&selectedTab==='settings')renderSettings();
+});
+}
+
+function pushToFirebase(){
+if(!fbRef||syncPaused)return;
+state._ts=Date.now();
+syncPaused=true;
+fbRef.set({
+horses:state.horses,
+adjustments:state.adjustments||{},
+supplements:state.supplements||{},
+season:state.season,
+_ts:state._ts
+}).then(()=>{syncPaused=false}).catch(()=>{syncPaused=false});
+}
+
+function setHousehold(id){
+if(fbRef)fbRef.off();
+householdId=id;
+localStorage.setItem('hfc_household',id);
+initFirebaseSync();
+pushToFirebase();
+}
+
+function generateHouseholdId(){
+const words=['tenor','odinn','uffie','spoi','horse','tolt','glacier','viking','saga','fjord'];
+const a=words[Math.floor(Math.random()*words.length)];
+const b=words[Math.floor(Math.random()*words.length)];
+return a+'-'+b+'-'+Math.floor(Math.random()*9000+1000);
+}
+
 // ── Data Defaults ──
 const FEED_TYPES=[
 {id:'pasture',name:'Free Roaming Pasture',unit:'est.',isPasture:true},
@@ -240,7 +321,11 @@ return parsed;
 }}catch(e){}
 return defaultState();
 }
-function save(){localStorage.setItem('hfc_state',JSON.stringify(state))}
+function save(){
+state._ts=Date.now();
+localStorage.setItem('hfc_state',JSON.stringify(state));
+pushToFirebase();
+}
 
 // ── Recommendation Engine ──
 function getTargetRange(h){
@@ -787,6 +872,20 @@ html+=`<div class="activity-opt${h.activity===a.id?' active':''}" onclick="setAc
 html+='</div></div></div>';
 });
 
+// ── Cloud Sync section ──
+html+='<div class="card"><h3>☁️ Cloud Sync</h3>';
+if(householdId){
+html+=`<div class="sync-status ${fbConnected?'online':'offline'}"><div class="dot"></div>${fbConnected?'Connected':'Offline — changes saved locally'}</div>`;
+html+=`<div class="form-group"><label>Household ID</label><div style="display:flex;gap:8px"><input value="${householdId}" id="hh_id_display" readonly style="background:var(--bg);flex:1"><button class="btn btn-outline btn-sm" onclick="navigator.clipboard.writeText('${householdId}');this.textContent='Copied!';setTimeout(()=>this.textContent='Copy',1500)">Copy</button></div></div>`;
+html+='<div style="font-size:12px;color:var(--text-light);margin-bottom:12px">Share this ID with other devices to sync. Open Settings on the other device and enter the same ID.</div>';
+html+='<button class="btn btn-outline btn-sm" onclick="if(confirm(\'Disconnect from cloud sync?\')){{localStorage.removeItem(\'hfc_household\');householdId=null;if(fbRef)fbRef.off();fbRef=null;renderSettings()}}">Disconnect</button>';
+}else{
+html+='<div style="font-size:13px;margin-bottom:12px">Sync your feed adjustments and supplement settings across all your devices.</div>';
+html+='<div class="form-group"><label>Join existing household</label><div style="display:flex;gap:8px"><input id="hh_join_input" placeholder="e.g. tenor-saga-4821" style="flex:1"><button class="btn btn-accent btn-sm" onclick="const v=document.getElementById(\'hh_join_input\').value.trim();if(v){setHousehold(v);renderSettings()}">Join</button></div></div>';
+html+='<div style="text-align:center;font-size:12px;color:var(--text-light);margin:8px 0">— or —</div>';
+html+=`<button class="btn btn-primary btn-block" onclick="setHousehold(generateHouseholdId());renderSettings()">🆕 Create New Household</button>`;
+}
+html+='</div>';
 html+='<div class="card"><button class="btn btn-danger btn-block" onclick="resetDefaults()">🔄 Reset All to Defaults</button></div>';
 el.innerHTML=html;
 }
@@ -814,6 +913,7 @@ selectedHorse=0;render();
 
 // ── Init ──
 render();
+initFirebaseSync();
 
 // ── Service Worker ──
 if('serviceWorker' in navigator){

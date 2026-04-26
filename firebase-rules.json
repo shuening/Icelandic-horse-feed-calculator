@@ -1,0 +1,19 @@
+{
+  "rules": {
+    "households": {
+      "$householdId": {
+        ".read": true,
+        ".write": true,
+        ".validate": "newData.hasChildren(['horses', 'season', '_ts'])",
+        "horses": {
+          ".validate": "newData.isArray()"
+        },
+        "_ts": {
+          ".validate": "newData.isNumber()"
+        }
+      }
+    },
+    ".read": false,
+    ".write": false
+  }
+}
