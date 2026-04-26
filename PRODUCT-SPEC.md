@@ -121,16 +121,22 @@ households/
 
 | Condition | Min % BW | Max % BW | Source |
 |-----------|----------|----------|--------|
-| IR / Overweight | 1.2% | 1.5% | NRC / Dr. Kellon |
-| All others | 1.5% | 1.8% | NRC / Merck Vet Manual |
+| IR / Overweight | 1.2% | 1.5% | [NRC](https://nap.nationalacademies.org/catalog/11653/nutrient-requirements-of-horses-sixth-revised-edition) / [Dr. Kellon](https://ecirhorse.org/) |
+| All others | 1.5% | 1.8% | [NRC](https://nap.nationalacademies.org/catalog/11653/nutrient-requirements-of-horses-sixth-revised-edition) / [Merck Vet Manual](https://www.merckvetmanual.com/management-and-nutrition/nutrition-horses/nutritional-requirements-of-horses-and-other-equids) |
 
 ### 4.2 Feed Distribution Logic
+
+| Profile | Strategy | Sources |
+|---------|----------|---------|  
+| Senior + Teeth + PSSM | Soaked feeds ~80%, dry hay ~15% max | [The Horse](https://thehorse.com/1108978/what-to-feed-senior-horses-with-dental-and-digestive-dysfunction/) · [KER](https://ker.com/equinews/diet-adjustments-provide-relief-pssm-horses/) |
+| IR / Overweight | Teff preferred, no alfalfa, pasture off by default | [Mad Barn EMS Guide](https://madbarn.com/how-to-feed-metabolic-horse/) · [Dr. Kellon](https://ecirhorse.org/) |
+| Healthy | Timothy-dominant, standard pasture access | [Siamber Wen](http://www.icelandichorses.co.uk/feeding.html) · [Merck](https://www.merckvetmanual.com/management-and-nutrition/nutrition-horses/nutritional-requirements-of-horses-and-other-equids) |
 
 #### Senior + Teeth + PSSM (e.g., Tenor)
 
 - Dry hay limited to **~15% of target** (max 2 lb) per vet dental recommendation
 - Soaked feeds constitute **~80%** of total intake
-- Beet pulp: 1–2.5 lb (low-starch fiber, KER-recommended for PSSM)
+- Beet pulp: 1–2.5 lb (low-starch fiber, [KER-recommended for PSSM](https://ker.com/equinews/diet-adjustments-provide-relief-pssm-horses/))
 - Pasture: available in summer (with monitoring)
 - Auto-generated notes: NSC <12%, fat supplementation, 3–4 meal splits
 
@@ -139,7 +145,7 @@ households/
 - **Pasture disabled by default** — must be manually enabled
 - Lean toward lower end of target range (30th percentile)
 - No alfalfa (high sugar risk)
-- Soaked teff cubes preferred (low NSC)
+- Soaked teff cubes preferred (low NSC, [recommended for IR/EMS](https://madbarn.com/how-to-feed-metabolic-horse/))
 - Auto-notes: grazing muzzle warning, soak hay 30–60 min, ideal weight display
 
 #### Healthy (e.g., Odinn, Uffie)
@@ -150,7 +156,7 @@ households/
 
 ### 4.3 Season Detection
 
-Auto-detects summer vs winter based on US DST dates (2nd Sunday March → 1st Sunday November). Affects pasture availability and hay quantities.
+Auto-detects summer vs winter based on [US DST dates](https://en.wikipedia.org/wiki/Daylight_saving_time_in_the_United_States) (2nd Sunday March → 1st Sunday November). Affects pasture availability and hay quantities.
 
 ---
 
@@ -160,15 +166,15 @@ Auto-detects summer vs winter based on US DST dates (2nd Sunday March → 1st Su
 
 | ID | Product | Default Dose | Unit | Manufacturer Dose | Notes |
 |----|---------|-------------|------|-------------------|-------|
-| `balanced_gold` | Triple Crown Balancer Gold | 4 oz | oz | 1–1.5 lb/day | ⚠️ Below mfg; partial ration balancer |
-| `amino_trace` | Mad Barn AminoTrace+ | 2 oz | oz | 3.5 oz (700 lb) | ⚠️ Below mfg; adequate with forage minerals |
-| `daily_red` | Redmond Daily Red Fortified | 2 oz | oz | 2 oz | At mfg dose |
+| `balanced_gold` | [Triple Crown Balancer Gold](https://www.triplecrownfeed.com/products/balancer-gold/) | 4 oz | oz | 1–1.5 lb/day | ⚠️ Below mfg; partial ration balancer |
+| `amino_trace` | [Mad Barn AminoTrace+](https://madbarn.com/product/aminotrace/) | 2 oz | oz | 3.5 oz (700 lb) | ⚠️ Below mfg; adequate with forage minerals |
+| `daily_red` | [Redmond Daily Red Fortified](https://redmondequine.com/products/daily-red) | 2 oz | oz | 2 oz | At mfg dose |
 | `digest_911` | Digest 911 | 1 oz | oz | — | Digestive enzymes |
 | `turmeric` | Turmeric for Horse | 1 tbsp | tbsp | — | Anti-inflammatory |
-| `super_sport` | Purina Super Sport | 4 oz | oz | 6 oz (750 lb) | ⚠️ Below mfg; reduced for Se overlap |
+| `super_sport` | [Purina Super Sport](https://www.purinamills.com/horse-feed/products/detail/purina-supersport-amino-acid-supplement) | 4 oz | oz | 6 oz (750 lb) | ⚠️ Below mfg; reduced for Se overlap |
 | `gut_gold` | Assured Gut Gold | 1 oz | oz | — | Probiotics |
-| `weight_accel` | Manna Pro Sr Weight Accelerator | 8 oz | oz | 8 oz | At mfg dose; 80% fat |
-| `vit_e` | Health-E Max Vitamin E | 1 scoop | scoop | 1 scoop | ⚠️ Half scoop if combined with AT+ |
+| `weight_accel` | [Manna Pro Sr Weight Accelerator](https://madbarn.com/feeds/senior-weight-accelerator-manna-pro/) | 8 oz | oz | 8 oz | At mfg dose; 80% fat |
+| `vit_e` | [Health-E Max Vitamin E](https://www.pbsanimalhealth.com/health-e-maximum-strength-vitamin-e-horse-supplement/p/10003/) | 1 scoop | scoop | 1 scoop | ⚠️ Half scoop if combined with AT+ |
 | `fat_oil` | Vegetable/Rice Bran Oil | 2 tbsp | tbsp | — | Fat energy for PSSM |
 | `magnesium` | Magnesium Oxide | 10 g | g | — | IR insulin sensitivity |
 
@@ -179,13 +185,13 @@ Auto-detects summer vs winter based on US DST dates (2nd Sunday March → 1st Su
 | AminoTrace+ | PSSM, IR, Hoof | Metabolic/hoof: enhanced Cu, Zn, Mg |
 | Balancer Gold | Healthy | General ration balancer |
 | Super Sport | PSSM | Amino acids for muscle maintenance |
-| Vitamin E | PSSM | Critical antioxidant (1,000–5,000 IU) |
+| Vitamin E | PSSM | Critical antioxidant ([1,000–5,000 IU per KER](https://ker.com/equinews/diet-adjustments-provide-relief-pssm-horses/)) |
 | Weight Accel | Senior | Calorie-dense weight support |
 | Digest 911 | Digestive | Gut support |
 | Gut Gold | Digestive | Microbiome support |
 | Turmeric | Hoof, Senior, PSSM | Anti-inflammatory |
 | Fat Oil | PSSM | Replace starch calories with fat |
-| Magnesium | IR | Dr. Kellon protocol |
+| Magnesium | IR | [Dr. Kellon protocol](https://ecirhorse.org/) |
 
 ### 5.3 Mutual Exclusion Logic
 
@@ -231,7 +237,7 @@ Hidden tabs (reserved for scale-up): Logs (📋), Trends (📈)
 ### 6.2 Design Principles
 
 - **Mobile-first:** Optimized for phone use at the barn
-- **Colorblind-safe:** Wong/IBM palette for badges, charts, and status indicators
+- **Colorblind-safe:** [Wong/IBM palette](https://www.nature.com/articles/nmeth.1618) for badges, charts, and status indicators
 - **Offline-capable:** PWA with Service Worker; works without internet
 - **Single file:** Entire app in one `index.html` for simplicity
 
@@ -250,8 +256,8 @@ Hidden tabs (reserved for scale-up): Logs (📋), Trends (📈)
 
 ### 7.1 Technology
 
-- Firebase Realtime Database (Spark free plan)
-- Firebase JS SDK v10.12.2 (compat build)
+- [Firebase Realtime Database](https://firebase.google.com/docs/database) (Spark free plan)
+- [Firebase JS SDK v10.12.2](https://firebase.google.com/docs/web/setup) (compat build)
 - WebSocket-based real-time push (< 1 second latency)
 
 ### 7.2 Sync Flow
@@ -372,7 +378,7 @@ python3 -m http.server 8000
 ### 12.3 Firebase Setup
 
 1. Create project at [console.firebase.google.com](https://console.firebase.google.com)
-2. Enable Realtime Database (us-central1, Spark plan)
+2. Enable [Realtime Database](https://firebase.google.com/docs/database/web/start) (us-central1, Spark plan)
 3. Register web app → config is embedded in `index.html`
 4. Set database rules (see `firebase-rules.json`)
 
