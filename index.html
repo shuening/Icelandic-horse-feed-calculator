@@ -160,12 +160,14 @@ const ALL_SUPPS=[
 {id:'balanced_gold',name:'Triple Crown Balanced Gold',desc:'Ration balancer',dose:4,unit:'oz',forAll:true},
 {id:'amino_trace',name:'Amino Trace+',desc:'Trace minerals + amino acids',dose:2,unit:'oz',forAll:true,primary:true},
 {id:'daily_red',name:'Daily Red Fortified',desc:'Vitamin/mineral (salt-based)',dose:2,unit:'oz',forAll:false},
-{id:'digest_911',name:'Digest 911',desc:'Digestive support',dose:1,unit:'oz',forAll:true},
+{id:'digest_911',name:'Digest 911',desc:'Digestive support',dose:1,unit:'oz',forAll:false},
 {id:'turmeric',name:'Turmeric for Horse',desc:'Anti-inflammatory',dose:1,unit:'tbsp',forAll:true},
 {id:'super_sport',name:'Purina Super Sport',desc:'Amino acids for muscle support',dose:4,unit:'oz'},
 {id:'gut_gold',name:'Assured Gut Gold',desc:'Gut health & microbiome',dose:1,unit:'oz'},
 {id:'weight_accel',name:'Senior Weight Accelerator',desc:'Calorie-dense weight support',dose:8,unit:'oz'},
-{id:'vit_e',name:'Health-E Max Vitamin E',desc:'Antioxidant & neuromuscular support',dose:1,unit:'scoop'}
+{id:'vit_e',name:'Health-E Max Vitamin E',desc:'Antioxidant & neuromuscular support',dose:1,unit:'scoop'},
+{id:'fat_oil',name:'Vegetable/Rice Bran Oil',desc:'Fat energy source (replaces starch calories)',dose:2,unit:'tbsp'},
+{id:'magnesium',name:'Magnesium Oxide',desc:'Supports insulin sensitivity & muscle function',dose:10,unit:'g'}
 ];
 
 // Condition → supplement recommendation rules
@@ -178,6 +180,8 @@ const SUPP_RULES=[
 {suppId:'weight_accel',conditions:['senior'],reason:'Senior → calorie-dense support for weight maintenance'},
 {suppId:'turmeric',conditions:['hoof','senior','pssm'],reason:'Anti-inflammatory support'},
 {suppId:'amino_trace',conditions:['hoof'],reason:'Hoof care → trace minerals including biotin & zinc'},
+{suppId:'fat_oil',conditions:['pssm'],reason:'PSSM → fat calories replace starch (vet recommended)'},
+{suppId:'magnesium',conditions:['ir'],reason:'IR → supports insulin sensitivity (Dr. Kellon protocol)'},
 ];
 // Backward compat helpers
 const BASE_SUPPS=ALL_SUPPS.filter(s=>s.forAll);
@@ -185,9 +189,9 @@ const TENOR_SUPPS=ALL_SUPPS.filter(s=>!s.forAll);
 
 const DEFAULT_HORSES=[
 {id:'tenor',name:'Tenor',weight:700,conditions:['senior','teeth','digestive','pssm','hoof'],activity:'moderate',emoji:'🐎'},
-{id:'odinn',name:'Odinn',weight:700,conditions:['healthy','digestive'],activity:'moderate',emoji:'🏇'},
-{id:'uffie',name:'Uffie',weight:800,conditions:['healthy','digestive'],activity:'moderate',emoji:'🐴'},
-{id:'spoi',name:'Spoi',weight:950,conditions:['ir','overweight'],activity:'moderate',emoji:'🐎'}
+{id:'odinn',name:'Odinn',weight:700,conditions:['healthy'],activity:'moderate',emoji:'🏇'},
+{id:'uffie',name:'Uffie',weight:800,conditions:['healthy'],activity:'moderate',emoji:'🐴'},
+{id:'spoi',name:'Spoi',weight:950,idealWeight:800,conditions:['ir','overweight'],activity:'moderate',emoji:'🐎'}
 ];
 
 const ACTIVITIES=[{id:'light',label:'Light'},{id:'moderate',label:'Moderate (~1hr/day)'},{id:'heavy',label:'Heavy'}];
@@ -262,24 +266,27 @@ let notes=[];
 if(isSenior&&hasTeeth&&hasPSSM){
 r.pasture=isSummer;
 const pastureEst=isSummer?2:0;
-const dryHay=Math.min(5,mid*0.4);
+// Vet guideline: teeth problems → >70% soaked feeds, minimal dry hay
+const dryHay=Math.min(2,mid*0.15);
 r.timothy_hay=+(dryHay*0.75).toFixed(1);
 r.alfalfa_hay=+(dryHay*0.25).toFixed(1);
 const remaining=mid-pastureEst-dryHay;
-r.soaked_timothy=+(remaining*0.55).toFixed(1);
-r.soaked_alfalfa=+(remaining*0.2).toFixed(1);
-r.soaked_beet=+(remaining*0.25).toFixed(1);
-r.soaked_beet=Math.max(1,Math.min(2,r.soaked_beet));
-r.special_pellets=0.5;
-notes.push('⚠️ PSSM: Keep starch/sugar low, higher fat');
-notes.push('🦷 Teeth: Prefer soaked feeds over dry');
+r.soaked_timothy=+(remaining*0.50).toFixed(1);
+r.soaked_alfalfa=+(remaining*0.20).toFixed(1);
+r.soaked_beet=+(remaining*0.20).toFixed(1);
+r.soaked_beet=Math.max(1,Math.min(2.5,r.soaked_beet));
+r.special_pellets=+(remaining*0.10).toFixed(1);
+notes.push('⚠️ PSSM: Keep starch/sugar low (<12% NSC). Add fat for energy (oil/rice bran)');
+notes.push('🦷 Teeth: ~80% soaked feeds — dry hay kept minimal per vet recommendation');
 notes.push('🍽️ Split into 3-4 smaller meals throughout the day');
+notes.push('🛢️ PSSM fat supplement: add ¼–½ cup vegetable or rice bran oil daily');
 if(c.includes('hoof'))notes.push('🐴 Monitor hoof condition — biotin supplementation recommended');
 }
 // IR/overweight (Spoi-like)
 else if(hasIR||hasOW){
-r.pasture=isSummer;
-const pastureEst=isSummer?2:0;
+// IR horses: restrict pasture severely (grazing muzzle or limited time)
+r.pasture=false; // default off — must be manually enabled with caution
+const pastureEst=0;
 const target=lo+(hi-lo)*0.3; // lean toward lower end
 const hayAmt=target-pastureEst;
 r.timothy_hay=+(hayAmt*0.6).toFixed(1);
@@ -288,8 +295,11 @@ r.soaked_beet=+Math.min(1,(hayAmt*0.1)).toFixed(1);
 r.alfalfa_hay=0;// avoid for IR
 r.special_pellets=0;
 notes.push('🚫 Avoid or minimize alfalfa (high sugar risk for IR)');
-notes.push('💧 Soak hay 30-60 min to reduce sugar content');
+notes.push('💧 Soak hay 30-60 min to reduce sugar content (can cut sugar up to 50%)');
+notes.push('🚨 PASTURE WARNING: IR/overweight horses must have restricted grazing — use a grazing muzzle (reduces intake ~80%) or limit to early morning only. Avoid afternoon pasture when fructan levels peak.');
 if(hasOW)notes.push('⚖️ Target lower end of range for weight management');
+if(h.idealWeight)notes.push('🎯 Current: '+h.weight+' lb → Ideal: '+h.idealWeight+' lb (target '+Math.round((h.weight-h.idealWeight)/h.weight*100)+'% weight loss)');
+notes.push('💊 Consider Magnesium supplementation to improve insulin sensitivity');
 }
 // Healthy horses (Odinn/Uffie-like)
 else{
@@ -403,7 +413,8 @@ const pct=lo>0?((total/hi)*100):0;
 const barClass=total<lo?'under':total>hi?'over':'good';
 
 let html=horseTabs(selectedHorse);
-html+=`<div class="card"><h3>${h.emoji} ${h.name} <span style="font-size:13px;color:var(--text-light)">${h.weight} lb</span></h3>`;
+const idealW=h.idealWeight?` → Ideal: ${h.idealWeight} lb`:'';
+html+=`<div class="card"><h3>${h.emoji} ${h.name} <span style="font-size:13px;color:var(--text-light)">${h.weight} lb${idealW}</span></h3>`;
 html+='<div class="conditions-list">';
 h.conditions.forEach(c=>{
 html+=`<span class="badge ${CONDITION_BADGE[c]||''}">${CONDITION_LABELS[c]||c}</span>`;
@@ -739,6 +750,7 @@ state.horses.forEach((h,hi)=>{
 html+=`<div class="card horse-settings-card"><h3>${h.emoji} ${h.name}</h3>`;
 html+=`<div class="form-group"><label>Name</label><input value="${h.name}" onchange="updateHorse(${hi},'name',this.value)"></div>`;
 html+=`<div class="form-group"><label>Weight (lb)</label><input type="number" value="${h.weight}" onchange="updateHorse(${hi},'weight',+this.value)"></div>`;
+html+=`<div class="form-group"><label>Ideal Weight (lb) — leave 0 for none</label><input type="number" value="${h.idealWeight||0}" onchange="updateHorse(${hi},'idealWeight',+this.value||undefined)"></div>`;
 html+=`<div class="form-group"><label>Conditions</label><div style="display:flex;flex-wrap:wrap;gap:6px">`;
 ALL_CONDITIONS.forEach(c=>{
 const active=h.conditions.includes(c);
