@@ -157,15 +157,15 @@ const CONDITION_LABELS={senior:'Senior',teeth:'Teeth Problem',digestive:'Digesti
 const CONDITION_BADGE={senior:'badge-senior',teeth:'badge-teeth',digestive:'badge-digestive',pssm:'badge-pssm',hoof:'badge-hoof',ir:'badge-ir',overweight:'badge-overweight',healthy:'badge-healthy'};
 
 const ALL_SUPPS=[
-{id:'balanced_gold',name:'Triple Crown Balanced Gold',desc:'Ration balancer',dose:4,unit:'oz',forAll:true},
-{id:'amino_trace',name:'Amino Trace+',desc:'Trace minerals + amino acids',dose:2,unit:'oz',forAll:true,primary:true},
+{id:'balanced_gold',name:'Triple Crown Balanced Gold',desc:'Ration balancer (general use)',dose:4,unit:'oz',forAll:false,mfgDose:'1–1.5 lb/day',mfgNote:'App dose 4 oz is well below mfg 1–1.5 lb/day — used as partial ration balancer, not sole source'},
+{id:'amino_trace',name:'Amino Trace+',desc:'Trace minerals + amino acids (metabolic/hoof)',dose:2,unit:'oz',forAll:false,primary:true,mfgDose:'100g (~3.5 oz) for 700 lb horse',mfgNote:'App dose 2 oz is below mfg 3.5 oz — adequate when combined with forage minerals'},
 {id:'daily_red',name:'Daily Red Fortified',desc:'Vitamin/mineral (salt-based)',dose:2,unit:'oz',forAll:false},
 {id:'digest_911',name:'Digest 911',desc:'Digestive support',dose:1,unit:'oz',forAll:false},
 {id:'turmeric',name:'Turmeric for Horse',desc:'Anti-inflammatory',dose:1,unit:'tbsp',forAll:true},
-{id:'super_sport',name:'Purina Super Sport',desc:'Amino acids for muscle support',dose:4,unit:'oz'},
+{id:'super_sport',name:'Purina Super Sport',desc:'Amino acids for muscle support',dose:4,unit:'oz',mfgDose:'6 oz for 750 lb horse',mfgNote:'App dose 4 oz is below mfg 6 oz — reduced to limit Se overlap with other supps'},
 {id:'gut_gold',name:'Assured Gut Gold',desc:'Gut health & microbiome',dose:1,unit:'oz'},
 {id:'weight_accel',name:'Senior Weight Accelerator',desc:'Calorie-dense weight support',dose:8,unit:'oz'},
-{id:'vit_e',name:'Health-E Max Vitamin E',desc:'Antioxidant & neuromuscular support',dose:1,unit:'scoop'},
+{id:'vit_e',name:'Health-E Max Vitamin E',desc:'Antioxidant & neuromuscular support',dose:1,unit:'scoop',mfgDose:'1 scoop (maintenance)',mfgNote:'Use half scoop when combined with AminoTrace+ (already provides ~570 IU Vit E)'},
 {id:'fat_oil',name:'Vegetable/Rice Bran Oil',desc:'Fat energy source (replaces starch calories)',dose:2,unit:'tbsp'},
 {id:'magnesium',name:'Magnesium Oxide',desc:'Supports insulin sensitivity & muscle function',dose:10,unit:'g'}
 ];
@@ -179,7 +179,8 @@ const SUPP_RULES=[
 {suppId:'vit_e',conditions:['pssm'],reason:'PSSM → critical antioxidant for neuromuscular health'},
 {suppId:'weight_accel',conditions:['senior'],reason:'Senior → calorie-dense support for weight maintenance'},
 {suppId:'turmeric',conditions:['hoof','senior','pssm'],reason:'Anti-inflammatory support'},
-{suppId:'amino_trace',conditions:['hoof'],reason:'Hoof care → trace minerals including biotin & zinc'},
+{suppId:'amino_trace',conditions:['pssm','hoof','ir'],reason:'Metabolic/hoof → enhanced Cu, Zn, Mg for metabolic & hoof support'},
+{suppId:'balanced_gold',conditions:['healthy'],reason:'Healthy horse → general ration balancer'},
 {suppId:'fat_oil',conditions:['pssm'],reason:'PSSM → fat calories replace starch (vet recommended)'},
 {suppId:'magnesium',conditions:['ir'],reason:'IR → supports insulin sensitivity (Dr. Kellon protocol)'},
 ];
@@ -347,7 +348,15 @@ return total;
 // Interaction warnings between supplements
 const SUPP_INTERACTIONS=[
 {supps:['amino_trace','daily_red'],severity:'warning',
-message:'⚠️ Amino Trace+ and Daily Red Fortified overlap significantly in zinc, copper, manganese, selenium, iodine, and vitamins A/D/E. Combining both may result in excessive selenium (~3 mg, 4.6× daily req) and iodine (~7.7 mg, 3.5× daily req). Consider using only one, or reduce Daily Red to 1 oz.'}
+message:'⚠️ Amino Trace+ and Daily Red Fortified overlap significantly in zinc, copper, manganese, selenium, iodine, and vitamins A/D/E. Combining both may result in excessive selenium (~3 mg, 4.6× daily req) and iodine (~7.7 mg, 3.5× daily req). Consider using only one, or reduce Daily Red to 1 oz.'},
+{supps:['amino_trace','balanced_gold'],severity:'warning',
+message:'⚠️ AminoTrace+ and Balancer Gold are BOTH complete vitamin/mineral supplements — using together doubles Zinc (~250 mg, 1.25× NRC), Copper (~65 mg, 1.3× NRC), and Selenium (~1.26 mg, near upper limit). Choose ONE based on condition: AminoTrace+ for metabolic/PSSM/hoof horses, Balancer Gold for healthy horses.'},
+{supps:['amino_trace','vit_e'],severity:'info',
+message:'💡 AminoTrace+ already provides ~570 IU Vitamin E. When combined with Health-E Max (~8,200 IU/scoop), total reaches ~8,800 IU. For PSSM target of 1,000–5,000 IU, consider using half scoop of Health-E Max (~4,100 IU → total ~4,700 IU).'},
+{supps:['amino_trace','super_sport'],severity:'info',
+message:'💡 Both AminoTrace+ and Super Sport contain selenium. Combined Se at app doses: ~0.93 mg (within safe range). Do not exceed listed doses.'},
+{supps:['balanced_gold','daily_red'],severity:'warning',
+message:'⚠️ Balancer Gold + Daily Red Fortified: overlapping minerals (Zn, Cu, Se, vitamins A/D/E). Use one or the other, not both.'}
 ];
 
 function getSuppsForHorse(h){
@@ -366,6 +375,15 @@ reasons.push(rule.reason);
 if(s.id==='weight_accel'&&(c.includes('ir')||c.includes('overweight'))){
 recommended=false;
 reasons=['⚠️ Not recommended for IR/overweight — calorie-dense'];
+}
+// Mutual exclusion: BG ↔ AT+ (don't recommend both)
+if(s.id==='balanced_gold'&&(c.includes('pssm')||c.includes('ir')||c.includes('hoof'))){
+recommended=false;
+reasons=['Use AminoTrace+ instead — designed for metabolic/hoof conditions'];
+}
+if(s.id==='amino_trace'&&!c.includes('pssm')&&!c.includes('ir')&&!c.includes('hoof')&&c.includes('healthy')){
+recommended=false;
+reasons=['Use Balancer Gold instead — sufficient for healthy horses'];
 }
 return{...s,recommended,reasons};
 });
@@ -492,7 +510,12 @@ html+='<div class="card">';
 const activeIds=supps.filter(s=>{const st=getSuppState(h.id,s.id);return st!==null?st.active:s.recommended}).map(s=>s.id);
 SUPP_INTERACTIONS.forEach(inter=>{
 if(inter.supps.every(sid=>activeIds.includes(sid))){
-html+=`<div style="background:#fff3e0;border:1.5px solid var(--warning);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:13px;color:#7a4a00;display:flex;align-items:flex-start;gap:8px"><span style="font-size:18px;flex-shrink:0">⚠️</span><div>${inter.message}</div></div>`;
+const isInfo=inter.severity==='info';
+const bg=isInfo?'#e3f2fd':'#fff3e0';
+const border=isInfo?'var(--info)':'var(--warning)';
+const color=isInfo?'#0d47a1':'#7a4a00';
+const icon=isInfo?'💡':'⚠️';
+html+=`<div style="background:${bg};border:1.5px solid ${border};border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:13px;color:${color};display:flex;align-items:flex-start;gap:8px"><span style="font-size:18px;flex-shrink:0">${icon}</span><div>${inter.message}</div></div>`;
 }
 });
 // Separate recommended vs other
@@ -509,7 +532,7 @@ const hasReasons=s.reasons&&s.reasons.length>0;
 const highlight=s.recommended&&hasReasons;
 html+=`<div class="supp-row" style="${highlight?'background:#e6f3f0;border-radius:8px;padding:6px 8px;margin:2px 0':''}">
 <label class="supp-toggle"><input type="checkbox" ${active?'checked':''} onchange="toggleSupp('${h.id}','${s.id}',this.checked,${dose})"><span class="slider"></span></label>
-<div class="supp-info"><div class="name">${s.name}</div><div class="desc">${s.desc}</div>${hasReasons?'<div style="font-size:11px;color:var(--accent);margin-top:2px">'+s.reasons.join(' · ')+'</div>':''}</div>
+<div class="supp-info"><div class="name">${s.name}</div><div class="desc">${s.desc}</div>${hasReasons?'<div style="font-size:11px;color:var(--accent);margin-top:2px">'+s.reasons.join(' · ')+'</div>':''}${s.mfgNote?'<div style="font-size:11px;color:var(--danger);margin-top:3px;background:#fff3e0;padding:3px 6px;border-radius:4px;border-left:3px solid var(--warning)">📋 '+s.mfgNote+'</div>':''}</div>
 <div class="supp-dose"><input type="number" step="0.5" min="0" value="${dose}" onchange="changeSuppDose('${h.id}','${s.id}',this.value,${active})" ${!active?'disabled':''}><span class="unit">${s.unit}</span></div>
 </div>`;
 }
