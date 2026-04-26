@@ -284,15 +284,27 @@ Hidden tabs (reserved for scale-up): Logs (📋), Trends (📈)
 
 The recommendation engine is based on guidelines from:
 
-| Source | Used For |
-|--------|----------|
-| NRC (National Research Council) | Daily intake % BW, mineral requirements |
-| Merck Veterinary Manual | General equine nutritional guidelines |
-| Dr. Eleanor Kellon, VMD | IR/EMS management, AminoTrace+ protocol, Mg supplementation |
-| Kentucky Equine Research (KER) | PSSM diet (low starch, high fat, Vit E 1,000–5,000 IU) |
-| Mad Barn Academy | Icelandic horse breed guide, metabolic horse feeding |
-| The Horse (thehorse.com) | Senior horse dental feeding management |
-| Siamber Wen Icelandics | Icelandic-specific feeding (2–2.5% BW intake) |
+| Source | Used For | Link |
+|--------|----------|------|
+| NRC (National Research Council) | Daily intake % BW, mineral requirements | [Nutrient Requirements of Horses (6th Ed.)](https://nap.nationalacademies.org/catalog/11653/nutrient-requirements-of-horses-sixth-revised-edition) |
+| Merck Veterinary Manual | General equine nutritional guidelines | [Nutritional Requirements of Horses](https://www.merckvetmanual.com/management-and-nutrition/nutrition-horses/nutritional-requirements-of-horses-and-other-equids) |
+| Dr. Eleanor Kellon, VMD | IR/EMS management, AminoTrace+ protocol, Mg supplementation | [ECIR Group / Dr. Kellon](https://ecirhorse.org/) |
+| Kentucky Equine Research (KER) | PSSM diet (low starch, high fat, Vit E 1,000–5,000 IU) | [Diet Adjustments for PSSM Horses](https://ker.com/equinews/diet-adjustments-provide-relief-pssm-horses/) |
+| Mad Barn Academy | Icelandic horse breed guide, metabolic horse feeding | [Icelandic Horse Breed Guide](https://madbarn.com/icelandic-horse-breed-guide/) · [How to Feed EMS Horses](https://madbarn.com/how-to-feed-metabolic-horse/) · [PSSM Feeding Guide](https://madbarn.com/pssm-in-horses/) |
+| The Horse (thehorse.com) | Senior horse dental feeding management | [Feeding Senior Horses with Dental Dysfunction](https://thehorse.com/1108978/what-to-feed-senior-horses-with-dental-and-digestive-dysfunction/) |
+| Siamber Wen Icelandics | Icelandic-specific feeding (2–2.5% BW intake) | [Feeding Your Icelandic Horse](http://www.icelandichorses.co.uk/feeding.html) |
+| KER — Metabolic Horses | Forage & NSC management for IR/EMS | [Feeding Forage & Limiting NSC](https://ker.com/equinews/feeding-forage-and-limiting-nonstructural-carbohydrates-in-metabolic-horses/) |
+
+### 8.1 Product References
+
+| Product | Manufacturer | Guaranteed Analysis / Info |
+|---------|-------------|---------------------------|
+| Triple Crown Balancer Gold | Triple Crown Feed | [Product Page](https://www.triplecrownfeed.com/products/balancer-gold/) · [Mad Barn Analysis](https://madbarn.com/feeds/balancer-gold-triple-crown/) |
+| Mad Barn AminoTrace+ | Mad Barn | [Product Page](https://madbarn.com/product/aminotrace/) · [Nutritional Profile](https://madbarn.com/feeds/aminotrace-vitamin-and-mineral-supplement-mad-barn/) |
+| Purina SuperSport | Purina Mills | [Product Page](https://www.purinamills.com/horse-feed/products/detail/purina-supersport-amino-acid-supplement) |
+| Manna Pro Sr Weight Accelerator | Manna Pro | [Mad Barn Analysis](https://madbarn.com/feeds/senior-weight-accelerator-manna-pro/) |
+| Redmond Daily Red Fortified | Redmond Equine | [Product Page](https://redmondequine.com/products/daily-red) |
+| Health-E Maximum Vitamin E | — | [Product Info](https://www.pbsanimalhealth.com/health-e-maximum-strength-vitamin-e-horse-supplement/p/10003/) |
 
 ---
 
