@@ -1,0 +1,43 @@
+name: Deploy Preview (dev branch)
+
+on:
+  push:
+    branches: [dev]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  deploy-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout dev
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+
+      - name: Checkout main into _main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: _main
+
+      - name: Build combined site
+        run: |
+          mkdir -p _site/preview
+          # Main (production) at root
+          cp _main/index.html _site/index.html
+          cp _main/firebase-rules.json _site/firebase-rules.json 2>/dev/null || true
+          # Dev preview at /preview/
+          cp index.html _site/preview/index.html
+          cp firebase-rules.json _site/preview/firebase-rules.json 2>/dev/null || true
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4

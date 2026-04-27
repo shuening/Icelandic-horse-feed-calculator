@@ -1,0 +1,55 @@
+name: Deploy Production (main branch)
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  deploy-production:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Check if dev branch exists
+        id: check-dev
+        run: |
+          if git ls-remote --heads origin dev | grep -q dev; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Checkout dev into _dev
+        if: steps.check-dev.outputs.exists == 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+          path: _dev
+
+      - name: Build combined site
+        run: |
+          mkdir -p _site/preview
+          # Main (production) at root
+          cp index.html _site/index.html
+          cp firebase-rules.json _site/firebase-rules.json 2>/dev/null || true
+          # Dev preview at /preview/
+          if [ -d "_dev" ]; then
+            cp _dev/index.html _site/preview/index.html
+            cp _dev/firebase-rules.json _site/preview/firebase-rules.json 2>/dev/null || true
+          fi
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4
