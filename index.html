@@ -543,6 +543,16 @@ render();
 function render(){
 ({recs:renderRecs,supps:renderSupps,feeds_db:renderFeedsDb,summary:renderSummary,logs:renderLogs,trends:renderTrends,settings:renderSettings})[selectedTab]();
 }
+function switchTab(tab){
+selectedTab=tab;
+document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+const t=document.querySelector('.tab[data-tab="'+tab+'"]');
+if(t)t.classList.add('active');
+document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+document.getElementById('page-'+tab).classList.add('active');
+render();
+}
+window.switchTab=switchTab;
 
 // ── Render: Horse Tabs (reusable) ──
 function horseTabs(sel,onChange){
@@ -620,10 +630,10 @@ html+='<input type="number" step="0.1" min="0" max="50" value="'+cfVal.toFixed(1
 html+='<span class="unit">lb</span>';
 html+='<button onclick="adjFeed(\''+h.id+'\',\''+cfId+'\',0.5)">+</button>';
 html+='</div></div>';
-html+='<div style="text-align:right;margin-top:4px"><button class="btn btn-outline btn-sm" style="font-size:11px" onclick="selectedTab=\'feeds_db\';render()">Change →</button></div>';
+html+='<div style="text-align:right;margin-top:4px"><button class="btn btn-outline btn-sm" style="font-size:11px" onclick="switchTab(\'feeds_db\')">Change →</button></div>';
 } else {
 html+='<div style="border-top:2px solid var(--border);padding-top:10px;margin-top:4px;text-align:center">';
-html+='<button class="btn btn-outline btn-sm" onclick="selectedTab=\'feeds_db\';render()">🏷 Add Commercial Feed</button></div>';
+html+='<button class="btn btn-outline btn-sm" onclick="switchTab(\'feeds_db\')">🏷 Add Commercial Feed</button></div>';
 }
 html+='</div>';
 
