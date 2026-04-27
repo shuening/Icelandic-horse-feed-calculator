@@ -124,6 +124,44 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 input[type=number]{-moz-appearance:textfield}
 .flex-between{display:flex;justify-content:space-between;align-items:center}
 .mb-8{margin-bottom:8px}.mb-16{margin-bottom:16px}.mt-8{margin-top:8px}.mt-16{margin-top:16px}
+/* Feed Database styles */
+.feed-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.filter-chip{padding:6px 12px;border-radius:20px;font-size:12px;border:2px solid var(--border);cursor:pointer;background:var(--card);transition:.2s}
+.filter-chip.active{border-color:var(--accent);background:var(--accent);color:#fff}
+.feed-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px;margin-bottom:12px;border:1px solid var(--border);cursor:pointer;transition:box-shadow .2s}
+.feed-card:active{box-shadow:0 4px 16px rgba(0,0,0,.12)}
+.feed-card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.feed-card-brand{font-size:11px;color:var(--text-light);font-weight:600;text-transform:uppercase;letter-spacing:.3px}
+.feed-card-name{font-size:15px;font-weight:700;margin:2px 0 6px}
+.feed-card-stats{display:flex;gap:12px;flex-wrap:wrap}
+.feed-stat{text-align:center}
+.feed-stat-val{font-size:16px;font-weight:700;color:var(--primary)}
+.feed-stat-label{font-size:10px;color:var(--text-light);text-transform:uppercase}
+.feed-tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:8px}
+.feed-tag{font-size:10px;padding:2px 6px;border-radius:4px;background:var(--bg);color:var(--text-light)}
+.nsc-bar{height:6px;background:#e8e0d8;border-radius:3px;margin:4px 0;overflow:hidden;max-width:120px}
+.nsc-fill{height:100%;border-radius:3px}
+.nsc-low{background:var(--success)}
+.nsc-mid{background:var(--warning)}
+.nsc-high{background:var(--danger)}
+.feed-detail-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:flex-end;justify-content:center;animation:fadeIn .2s}
+.feed-detail-sheet{background:var(--card);border-radius:16px 16px 0 0;width:100%;max-width:480px;max-height:85vh;overflow-y:auto;padding:20px;animation:slideUp .25s ease}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:none}}
+.feed-detail-close{position:sticky;top:0;text-align:right}
+.feed-detail-close button{background:var(--bg);border:none;border-radius:50%;width:32px;height:32px;font-size:18px;cursor:pointer}
+.nutrient-bar-row{display:flex;align-items:center;gap:8px;margin:6px 0}
+.nutrient-bar-label{font-size:13px;font-weight:600;width:50px}
+.nutrient-bar-track{flex:1;height:8px;background:#e8e0d8;border-radius:4px;overflow:hidden}
+.nutrient-bar-fill{height:100%;border-radius:4px;background:var(--accent);transition:width .3s}
+.nutrient-bar-val{font-size:13px;font-weight:700;width:40px;text-align:right}
+.compare-bar{position:fixed;bottom:0;left:0;right:0;background:var(--primary);color:#fff;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;z-index:150;animation:slideUp .2s}
+.compare-btn{padding:8px 16px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-weight:600;font-size:13px;cursor:pointer}
+.forage-range{display:flex;align-items:center;gap:4px;font-size:12px}
+.forage-range-bar{flex:1;height:8px;background:#e8e0d8;border-radius:4px;position:relative;max-width:100px}
+.forage-range-fill{position:absolute;height:100%;border-radius:4px;background:var(--success)}
+.feed-section-tabs{display:flex;gap:0;margin-bottom:16px;border-radius:8px;overflow:hidden;border:2px solid var(--border)}
+.feed-section-tab{flex:1;padding:10px;text-align:center;font-size:13px;font-weight:600;cursor:pointer;background:var(--card);transition:.2s}
+.feed-section-tab.active{background:var(--primary);color:#fff}
 </style>
 </head>
 <body>
@@ -131,6 +169,7 @@ input[type=number]{-moz-appearance:textfield}
 <div class="tabs" id="tabs">
 <div class="tab active" data-tab="recs">🥕 Feed</div>
 <div class="tab" data-tab="supps">💊 Supps</div>
+<div class="tab" data-tab="feeds_db">🏷 Feeds</div>
 <div class="tab" data-tab="summary">📊 Summary</div>
 <!-- Hidden until server/scale up -->
 <!-- <div class="tab" data-tab="logs">📋 Logs</div> -->
@@ -140,6 +179,7 @@ input[type=number]{-moz-appearance:textfield}
 
 <div id="page-recs" class="page active"></div>
 <div id="page-supps" class="page"></div>
+<div id="page-feeds_db" class="page"></div>
 <div id="page-summary" class="page"></div>
 <!-- Hidden until server/scale up -->
 <!-- <div id="page-logs" class="page"></div> -->
@@ -494,7 +534,7 @@ render();
 });
 
 function render(){
-({recs:renderRecs,supps:renderSupps,summary:renderSummary,logs:renderLogs,trends:renderTrends,settings:renderSettings})[selectedTab]();
+({recs:renderRecs,supps:renderSupps,feeds_db:renderFeedsDb,summary:renderSummary,logs:renderLogs,trends:renderTrends,settings:renderSettings})[selectedTab]();
 }
 
 // ── Render: Horse Tabs (reusable) ──
@@ -634,6 +674,371 @@ selectedHorse=+e.target.closest('.horse-tab').dataset.idx;renderSupps();
 }
 window.toggleSupp=function(hid,sid,active,dose){setSuppState(hid,sid,{active,dose:+dose});renderSupps()};
 window.changeSuppDose=function(hid,sid,dose,active){setSuppState(hid,sid,{active:!!active,dose:+dose});renderSupps()};
+
+// ── Feed Database ──
+const LOW_NSC_FEEDS = [
+  {
+    id: 'tc_low_starch', brand: 'Triple Crown', name: 'Low Starch', type: 'Complete Feed',
+    nsc: 13.0, sugar: 3.1, starch: 9.9, protein: 13, fat: 6, fiber: 18,
+    grainFree: true, molassesFree: true, alfalfaFree: true, probiotics: true,
+    features: ['Contains flaxseed & rice bran', 'Lower potassium'],
+    suitableFor: ['Metabolic', 'Easy Keeper', 'HYPP', 'Allergies'],
+    feedRate: { min: 3, max: 8, per: 1000, unit: 'lb' },
+    purchaseLinks: [
+      { store: 'Tractor Supply', url: 'https://www.tractorsupply.com/tsc/product/triple-crown-low-starch-horse-feed-50-lb' },
+      { store: 'Chewy', url: 'https://www.chewy.com/s?query=triple+crown+low+starch' }
+    ]
+  },
+  {
+    id: 'purina_wellsolve', brand: 'Purina', name: 'WellSolve L/S', type: 'Complete Feed',
+    nsc: 12.0, sugar: 5.0, starch: 7.0, protein: 12, fat: 5.5, fiber: 23,
+    grainFree: true, molassesFree: true, alfalfaFree: false, probiotics: false,
+    features: ['High digestible fiber', 'Added antioxidants', 'Blend of vegetable oils', 'Research-backed formula'],
+    suitableFor: ['Metabolic', 'Easy Keeper', 'Senior', 'Special Needs'],
+    feedRate: { min: 3, max: 9, per: 1000, unit: 'lb' },
+    purchaseLinks: [
+      { store: 'Tractor Supply', url: 'https://www.tractorsupply.com/tsc/product/purina-wellsolve-ls-horse-feed-40-lb' },
+      { store: 'Purina Shop', url: 'https://shop.purinamills.com/collections/horse-products' }
+    ]
+  },
+  {
+    id: 'nutrena_safechoice', brand: 'Nutrena', name: 'SafeChoice Special Care', type: 'Complete Feed',
+    nsc: 10.0, sugar: 4.5, starch: 5.5, protein: 14, fat: 7, fiber: 18,
+    grainFree: false, molassesFree: true, alfalfaFree: false, probiotics: true,
+    features: ['Contains chromium for metabolic support', 'Topline Balance\u00ae', 'No corn or corn co-products'],
+    suitableFor: ['Metabolic', 'Easy Keeper', 'IR', 'Ponies'],
+    feedRate: { min: 2.5, max: 7, per: 1000, unit: 'lb' },
+    purchaseLinks: [
+      { store: 'Tractor Supply', url: 'https://www.tractorsupply.com/tsc/product/nutrena-safechoice-special-care-horse-feed-50-lb' },
+      { store: 'Local Feed Store', url: '' }
+    ]
+  },
+  {
+    id: 'stabul1', brand: 'Stabul 1', name: 'Equine Diet', type: 'Complete Feed',
+    nsc: 10.0, sugar: 5.0, starch: 5.0, protein: 12, fat: 6, fiber: 25,
+    grainFree: true, molassesFree: true, alfalfaFree: false, probiotics: false,
+    features: ['Corn & oats free', 'Multiple flavors (Peppermint, Fenugreek)', 'High fiber'],
+    suitableFor: ['Metabolic', 'Easy Keeper', 'IR', 'PSSM', 'Cushing\'s'],
+    feedRate: { min: 4, max: 12, per: 1000, unit: 'lb' },
+    purchaseLinks: [
+      { store: 'Chewy', url: 'https://www.chewy.com/s?query=stabul+1' },
+      { store: 'Tractor Supply', url: 'https://www.tractorsupply.com/tsc/product/stabul-1-peppermint-40-lb' }
+    ],
+    warning: 'High feed rate needed \u2014 consider pairing with a ration balancer'
+  },
+  {
+    id: 'tribute_kalm', brand: 'Tribute', name: 'Kalm \'N EZ Pellet', type: 'Complete Feed',
+    nsc: 13.5, sugar: 4.5, starch: 9.0, protein: 14, fat: 6, fiber: 16,
+    grainFree: true, molassesFree: true, alfalfaFree: true, probiotics: true,
+    features: ['Soy-free option available', 'Beet pulp based', 'Yeast culture included'],
+    suitableFor: ['Metabolic', 'Easy Keeper', 'Allergies'],
+    feedRate: { min: 3, max: 8, per: 1000, unit: 'lb' },
+    purchaseLinks: [
+      { store: 'Tribute', url: 'https://tributeequinenutrition.com/products/kalm-n-ez-pellet' }
+    ]
+  },
+  {
+    id: 'buckeye_low_n_steady', brand: 'Buckeye', name: 'LOW \'N STEADY', type: 'Complete Feed',
+    nsc: 11.0, sugar: 4.0, starch: 7.0, protein: 14, fat: 6, fiber: 20,
+    grainFree: true, molassesFree: true, alfalfaFree: false, probiotics: true,
+    features: ['Research-backed', 'EquiFlora\u00ae probiotic', 'Organic trace minerals'],
+    suitableFor: ['Metabolic', 'Easy Keeper', 'IR', 'Laminitis-prone'],
+    feedRate: { min: 3, max: 7, per: 1000, unit: 'lb' },
+    purchaseLinks: [
+      { store: 'Buckeye', url: 'https://www.buckeyenutrition.com/products/low-n-steady' }
+    ]
+  },
+  {
+    id: 'tribute_essential_k', brand: 'Tribute', name: 'Essential K', type: 'Ration Balancer',
+    nsc: 11.0, sugar: 4.0, starch: 7.0, protein: 30, fat: 5, fiber: 10,
+    grainFree: true, molassesFree: true, alfalfaFree: true, probiotics: true,
+    features: ['Concentrated ration balancer', 'Feed only 1-2 lb/day', 'Complete vitamin/mineral profile'],
+    suitableFor: ['Easy Keeper', 'Metabolic', 'All horses on forage-based diets'],
+    feedRate: { min: 1, max: 2, per: 1000, unit: 'lb' },
+    purchaseLinks: [
+      { store: 'Tribute', url: 'https://tributeequinenutrition.com/products/essential-k' }
+    ]
+  },
+  {
+    id: 'purina_enrich', brand: 'Purina', name: 'Enrich Plus', type: 'Ration Balancer',
+    nsc: 14.0, sugar: 5.0, starch: 9.0, protein: 32, fat: 3, fiber: 9,
+    grainFree: false, molassesFree: false, alfalfaFree: false, probiotics: false,
+    features: ['Concentrated ration balancer', 'Feed only 1-2 lb/day', 'Widely available'],
+    suitableFor: ['Easy Keeper', 'All horses'],
+    feedRate: { min: 1, max: 2, per: 1000, unit: 'lb' },
+    purchaseLinks: [
+      { store: 'Tractor Supply', url: 'https://www.tractorsupply.com/tsc/product/purina-enrich-plus-ration-balancing-horse-feed-50-lb' },
+      { store: 'Purina Shop', url: 'https://shop.purinamills.com/collections/horse-products' }
+    ]
+  }
+];
+
+const LOW_NSC_FORAGES = [
+  { id: 'timothy_hay_f', name: 'Timothy Hay', type: 'Loose Hay', grassType: 'Cool-season', nscRange: [8, 18], typicalNsc: 12, protein: '8-12%', notes: 'Most popular for metabolic horses. Lowest NSC among cool-season grasses. Test each batch!', soakable: true, soakReduction: 30 },
+  { id: 'teff_hay', name: 'Teff Hay', type: 'Loose Hay', grassType: 'Warm-season', nscRange: [7, 16], typicalNsc: 9, protein: '6-10%', notes: 'Generally lowest NSC. Warm-season grass. Horses may need adjustment period. Not always available.', soakable: true, soakReduction: 30 },
+  { id: 'orchard_hay', name: 'Orchard Grass Hay', type: 'Loose Hay', grassType: 'Cool-season', nscRange: [10, 22], typicalNsc: 14, protein: '8-12%', notes: 'Variable NSC. Test before feeding to metabolic horses.', soakable: true, soakReduction: 30 },
+  { id: 'bermuda_hay', name: 'Bermuda Grass Hay', type: 'Loose Hay', grassType: 'Warm-season', nscRange: [7, 14], typicalNsc: 10, protein: '7-10%', notes: 'Warm-season, generally lower NSC. Good option for metabolic horses. More common in southern states.', soakable: true, soakReduction: 30 },
+  { id: 'timothy_cubes_f', name: 'Timothy Hay Cubes', type: 'Hay Cubes', grassType: 'Cool-season', nscRange: [8, 18], typicalNsc: 12, protein: '8-12%', notes: 'Same NSC as loose timothy. Easy to soak. Good for horses with teeth issues. Standlee brand widely available.', soakable: true, soakReduction: 30 },
+  { id: 'timothy_pellets_f', name: 'Timothy Hay Pellets', type: 'Hay Pellets', grassType: 'Cool-season', nscRange: [8, 18], typicalNsc: 12, protein: '8-12%', notes: 'Ground timothy in pellet form. Easy to soak. Quick to soften for dental-challenged horses.', soakable: true, soakReduction: 30 }
+];
+
+// Feed DB state
+let feedDbSection = 'commercial'; // 'commercial' or 'forages'
+let feedDbFilter = { maxNsc: 15, grainFree: false, molassesFree: false, type: 'all' };
+let compareList = [];
+
+function nscClass(nsc) { return nsc <= 10 ? 'nsc-low' : nsc <= 13 ? 'nsc-mid' : 'nsc-high'; }
+function nscPct(nsc) { return Math.min(100, (nsc / 20) * 100); }
+
+function showFeedDetail(feedId) {
+  const feed = LOW_NSC_FEEDS.find(f => f.id === feedId);
+  if (!feed) return;
+  const existing = document.querySelector('.feed-detail-overlay');
+  if (existing) existing.remove();
+  const overlay = document.createElement('div');
+  overlay.className = 'feed-detail-overlay';
+  overlay.onclick = function(e) { if (e.target === overlay) closeFeedDetail(); };
+  const h = state.horses[selectedHorse];
+  const weight = h ? h.weight : 1000;
+  const minFeed = (feed.feedRate.min * weight / feed.feedRate.per).toFixed(1);
+  const maxFeed = (feed.feedRate.max * weight / feed.feedRate.per).toFixed(1);
+  const inCompare = compareList.includes(feedId);
+  let html = '<div class="feed-detail-sheet">';
+  html += '<div class="feed-detail-close"><button onclick="closeFeedDetail()">&times;</button></div>';
+  html += '<div class="feed-card-brand">' + feed.brand + '</div>';
+  html += '<div style="font-size:20px;font-weight:700;margin:4px 0 8px">' + feed.name + '</div>';
+  html += '<div style="font-size:12px;color:var(--text-light);margin-bottom:12px">' + feed.type + '</div>';
+  // Nutrient bars
+  const nutrients = [
+    { label: 'NSC', val: feed.nsc, max: 20, color: feed.nsc <= 10 ? 'var(--success)' : feed.nsc <= 13 ? 'var(--warning)' : 'var(--danger)' },
+    { label: 'Protein', val: feed.protein, max: 35, color: 'var(--accent)' },
+    { label: 'Fat', val: feed.fat, max: 10, color: 'var(--info)' },
+    { label: 'Fiber', val: feed.fiber, max: 30, color: 'var(--primary-light)' }
+  ];
+  nutrients.forEach(n => {
+    html += '<div class="nutrient-bar-row"><div class="nutrient-bar-label">' + n.label + '</div><div class="nutrient-bar-track"><div class="nutrient-bar-fill" style="width:' + (n.val / n.max * 100).toFixed(0) + '%;background:' + n.color + '"></div></div><div class="nutrient-bar-val">' + n.val + '%</div></div>';
+  });
+  // Sugar / Starch breakdown
+  html += '<div style="font-size:12px;color:var(--text-light);margin:4px 0 12px">Sugar: ' + feed.sugar + '% · Starch: ' + feed.starch + '%</div>';
+  // Features
+  html += '<div style="margin:12px 0"><div style="font-size:12px;font-weight:700;color:var(--text-light);text-transform:uppercase;margin-bottom:6px">Features</div>';
+  feed.features.forEach(f => { html += '<div style="font-size:13px;padding:3px 0">✅ ' + f + '</div>'; });
+  html += '</div>';
+  // Suitable for
+  html += '<div style="margin:12px 0"><div style="font-size:12px;font-weight:700;color:var(--text-light);text-transform:uppercase;margin-bottom:6px">Suitable For</div><div style="display:flex;gap:4px;flex-wrap:wrap">';
+  feed.suitableFor.forEach(s => { html += '<span class="badge badge-healthy">' + s + '</span>'; });
+  html += '</div></div>';
+  // Feed rate
+  html += '<div class="card" style="margin:12px 0;background:var(--bg)"><div style="font-size:12px;font-weight:700;color:var(--text-light);text-transform:uppercase;margin-bottom:4px">Feed Rate for ' + (h ? h.name + ' (' + weight + ' lb)' : weight + ' lb horse') + '</div>';
+  html += '<div style="font-size:18px;font-weight:700;color:var(--primary)">' + minFeed + ' \u2013 ' + maxFeed + ' lb/day</div>';
+  html += '<div style="font-size:11px;color:var(--text-light)">Based on ' + feed.feedRate.min + '\u2013' + feed.feedRate.max + ' lb per ' + feed.feedRate.per + ' lb body weight</div></div>';
+  // Warning
+  if (feed.warning) {
+    html += '<div style="background:#fff3e0;border:1.5px solid var(--warning);border-radius:8px;padding:10px 12px;margin:8px 0;font-size:13px;color:#7a4a00">\u26a0\ufe0f ' + feed.warning + '</div>';
+  }
+  // Tags
+  html += '<div class="feed-tags" style="margin:12px 0">';
+  if (feed.grainFree) html += '<span class="feed-tag">Grain Free</span>';
+  if (feed.molassesFree) html += '<span class="feed-tag">Molasses Free</span>';
+  if (feed.alfalfaFree) html += '<span class="feed-tag">Alfalfa Free</span>';
+  if (feed.probiotics) html += '<span class="feed-tag">Probiotics</span>';
+  html += '</div>';
+  // Purchase links
+  if (feed.purchaseLinks && feed.purchaseLinks.length) {
+    html += '<div style="margin:12px 0"><div style="font-size:12px;font-weight:700;color:var(--text-light);text-transform:uppercase;margin-bottom:6px">Where to Buy</div><div style="display:flex;gap:8px;flex-wrap:wrap">';
+    feed.purchaseLinks.forEach(l => {
+      if (l.url) html += '<a href="' + l.url + '" target="_blank" rel="noopener" class="btn btn-accent btn-sm" style="text-decoration:none">' + l.store + '</a>';
+      else html += '<span class="btn btn-outline btn-sm">' + l.store + '</span>';
+    });
+    html += '</div></div>';
+  }
+  // Compare button
+  html += '<button class="btn ' + (inCompare ? 'btn-danger' : 'btn-primary') + ' btn-block" style="margin-top:12px" onclick="toggleCompare(\'' + feed.id + '\');closeFeedDetail()">' + (inCompare ? 'Remove from Compare' : '\u2795 Add to Compare') + '</button>';
+  html += '</div>';
+  overlay.innerHTML = html;
+  document.body.appendChild(overlay);
+}
+window.showFeedDetail = showFeedDetail;
+
+function closeFeedDetail() {
+  const overlay = document.querySelector('.feed-detail-overlay');
+  if (overlay) overlay.remove();
+}
+window.closeFeedDetail = closeFeedDetail;
+
+function toggleCompare(feedId) {
+  const idx = compareList.indexOf(feedId);
+  if (idx >= 0) compareList.splice(idx, 1);
+  else if (compareList.length < 3) compareList.push(feedId);
+  renderFeedsDb();
+}
+window.toggleCompare = toggleCompare;
+
+function showCompare() {
+  const feeds = compareList.map(id => LOW_NSC_FEEDS.find(f => f.id === id)).filter(Boolean);
+  if (feeds.length < 2) { alert('Select at least 2 feeds to compare'); return; }
+  const existing = document.querySelector('.feed-detail-overlay');
+  if (existing) existing.remove();
+  const overlay = document.createElement('div');
+  overlay.className = 'feed-detail-overlay';
+  overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+  const h = state.horses[selectedHorse];
+  const weight = h ? h.weight : 1000;
+  let html = '<div class="feed-detail-sheet">';
+  html += '<div class="feed-detail-close"><button onclick="document.querySelector(\'.feed-detail-overlay\').remove()">&times;</button></div>';
+  html += '<h3 style="margin-bottom:12px">\ud83d\udd0d Compare Feeds</h3>';
+  html += '<div style="overflow-x:auto"><table class="summary-table"><tr><th></th>';
+  feeds.forEach(f => { html += '<th style="font-size:12px">' + f.brand + '<br>' + f.name + '</th>'; });
+  html += '</tr>';
+  const rows = [
+    { label: 'NSC %', key: 'nsc' }, { label: 'Sugar %', key: 'sugar' }, { label: 'Starch %', key: 'starch' },
+    { label: 'Protein %', key: 'protein' }, { label: 'Fat %', key: 'fat' }, { label: 'Fiber %', key: 'fiber' }
+  ];
+  rows.forEach(r => {
+    html += '<tr><td style="font-weight:600">' + r.label + '</td>';
+    const vals = feeds.map(f => f[r.key]);
+    const best = r.key === 'nsc' || r.key === 'sugar' || r.key === 'starch' ? Math.min(...vals) : Math.max(...vals);
+    feeds.forEach(f => {
+      const isBest = f[r.key] === best;
+      html += '<td style="' + (isBest ? 'color:var(--success);font-weight:700' : '') + '">' + f[r.key] + '</td>';
+    });
+    html += '</tr>';
+  });
+  // Boolean rows
+  ['grainFree', 'molassesFree', 'alfalfaFree', 'probiotics'].forEach(key => {
+    const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase());
+    html += '<tr><td style="font-weight:600">' + label + '</td>';
+    feeds.forEach(f => { html += '<td>' + (f[key] ? '\u2705' : '\u274c') + '</td>'; });
+    html += '</tr>';
+  });
+  // Feed rate
+  html += '<tr><td style="font-weight:600">Feed Rate</td>';
+  feeds.forEach(f => {
+    const mn = (f.feedRate.min * weight / f.feedRate.per).toFixed(1);
+    const mx = (f.feedRate.max * weight / f.feedRate.per).toFixed(1);
+    html += '<td>' + mn + '\u2013' + mx + ' lb</td>';
+  });
+  html += '</tr></table></div></div>';
+  overlay.innerHTML = html;
+  document.body.appendChild(overlay);
+}
+window.showCompare = showCompare;
+
+function setFeedDbSection(s) { feedDbSection = s; renderFeedsDb(); }
+window.setFeedDbSection = setFeedDbSection;
+function setFeedFilter(key, val) {
+  if (key === 'maxNsc') feedDbFilter.maxNsc = val;
+  else if (key === 'grainFree') feedDbFilter.grainFree = !feedDbFilter.grainFree;
+  else if (key === 'molassesFree') feedDbFilter.molassesFree = !feedDbFilter.molassesFree;
+  else if (key === 'type') feedDbFilter.type = val;
+  renderFeedsDb();
+}
+window.setFeedFilter = setFeedFilter;
+
+function renderFeedsDb() {
+  const el = document.getElementById('page-feeds_db');
+  let html = '';
+  // Section toggle
+  html += '<div class="feed-section-tabs">';
+  html += '<div class="feed-section-tab' + (feedDbSection === 'commercial' ? ' active' : '') + '" onclick="setFeedDbSection(\'commercial\')">\ud83c\udf3e Commercial Feeds</div>';
+  html += '<div class="feed-section-tab' + (feedDbSection === 'forages' ? ' active' : '') + '" onclick="setFeedDbSection(\'forages\')">\ud83c\udf3f Forages</div>';
+  html += '</div>';
+
+  if (feedDbSection === 'commercial') {
+    // Filters
+    html += '<div class="feed-filters">';
+    [{ label: '\u226410%', val: 10 }, { label: '\u226412%', val: 12 }, { label: '\u226415%', val: 15 }, { label: 'All', val: 99 }].forEach(f => {
+      html += '<div class="filter-chip' + (feedDbFilter.maxNsc === f.val ? ' active' : '') + '" onclick="setFeedFilter(\'maxNsc\',' + f.val + ')">' + f.label + ' NSC</div>';
+    });
+    html += '<div class="filter-chip' + (feedDbFilter.grainFree ? ' active' : '') + '" onclick="setFeedFilter(\'grainFree\')">' + (feedDbFilter.grainFree ? '\u2705 ' : '') + 'Grain Free</div>';
+    html += '<div class="filter-chip' + (feedDbFilter.molassesFree ? ' active' : '') + '" onclick="setFeedFilter(\'molassesFree\')">' + (feedDbFilter.molassesFree ? '\u2705 ' : '') + 'Molasses Free</div>';
+    html += '</div>';
+    // Type filter
+    html += '<div class="feed-filters">';
+    ['all', 'Complete Feed', 'Ration Balancer'].forEach(t => {
+      const label = t === 'all' ? 'All Types' : t;
+      html += '<div class="filter-chip' + (feedDbFilter.type === t ? ' active' : '') + '" onclick="setFeedFilter(\'type\',\'' + t + '\')">' + label + '</div>';
+    });
+    html += '</div>';
+
+    // Filter feeds
+    let feeds = LOW_NSC_FEEDS.filter(f => {
+      if (f.nsc > feedDbFilter.maxNsc) return false;
+      if (feedDbFilter.grainFree && !f.grainFree) return false;
+      if (feedDbFilter.molassesFree && !f.molassesFree) return false;
+      if (feedDbFilter.type !== 'all' && f.type !== feedDbFilter.type) return false;
+      return true;
+    });
+    feeds.sort((a, b) => a.nsc - b.nsc);
+
+    if (!feeds.length) {
+      html += '<div class="empty-state"><div class="icon">\ud83d\udd0d</div>No feeds match your filters</div>';
+    } else {
+      feeds.forEach(f => {
+        const inCmp = compareList.includes(f.id);
+        html += '<div class="feed-card" onclick="showFeedDetail(\'' + f.id + '\')">';
+        html += '<div class="feed-card-header"><div>';
+        html += '<div class="feed-card-brand">' + f.brand + '</div>';
+        html += '<div class="feed-card-name">' + f.name + '</div>';
+        html += '</div><div style="text-align:right">';
+        html += '<div style="font-size:20px;font-weight:700;color:' + (f.nsc <= 10 ? 'var(--success)' : f.nsc <= 13 ? 'var(--warning)' : 'var(--danger)') + '">' + f.nsc + '%</div>';
+        html += '<div style="font-size:10px;color:var(--text-light)">NSC</div>';
+        html += '<div class="nsc-bar"><div class="nsc-fill ' + nscClass(f.nsc) + '" style="width:' + nscPct(f.nsc) + '%"></div></div>';
+        html += '</div></div>';
+        html += '<div class="feed-card-stats">';
+        html += '<div class="feed-stat"><div class="feed-stat-val">' + f.protein + '</div><div class="feed-stat-label">Protein</div></div>';
+        html += '<div class="feed-stat"><div class="feed-stat-val">' + f.fat + '</div><div class="feed-stat-label">Fat</div></div>';
+        html += '<div class="feed-stat"><div class="feed-stat-val">' + f.fiber + '</div><div class="feed-stat-label">Fiber</div></div>';
+        html += '<div class="feed-stat"><div class="feed-stat-val" style="font-size:12px">' + f.type.split(' ')[0] + '</div><div class="feed-stat-label">Type</div></div>';
+        html += '</div>';
+        html += '<div class="feed-tags">';
+        if (f.grainFree) html += '<span class="feed-tag">Grain Free</span>';
+        if (f.molassesFree) html += '<span class="feed-tag">Molasses Free</span>';
+        if (f.alfalfaFree) html += '<span class="feed-tag">Alfalfa Free</span>';
+        if (f.probiotics) html += '<span class="feed-tag">Probiotics</span>';
+        html += '</div>';
+        if (f.warning) html += '<div style="font-size:11px;color:var(--danger);margin-top:6px">\u26a0\ufe0f ' + f.warning + '</div>';
+        // Compare checkbox
+        html += '<div style="margin-top:8px;display:flex;align-items:center;gap:6px" onclick="event.stopPropagation();toggleCompare(\'' + f.id + '\')">';
+        html += '<input type="checkbox" ' + (inCmp ? 'checked' : '') + ' style="accent-color:var(--accent)" onclick="event.stopPropagation();toggleCompare(\'' + f.id + '\')">';
+        html += '<span style="font-size:12px;color:var(--text-light)">Compare</span></div>';
+        html += '</div>';
+      });
+    }
+  } else {
+    // Forages section
+    html += '<div class="card"><h3>\ud83c\udf3f Forage NSC Guide</h3>';
+    html += '<div class="notes" style="margin-bottom:12px">\ud83d\udca7 <strong>Soaking Tip:</strong> Soak hay in cold water for 30\u201360 minutes to reduce sugar content by up to 30%. Drain and discard water. Do not reuse soaking water.</div>';
+    LOW_NSC_FORAGES.forEach(f => {
+      const rangeMin = f.nscRange[0], rangeMax = f.nscRange[1];
+      const barLeft = (rangeMin / 25 * 100).toFixed(0);
+      const barWidth = ((rangeMax - rangeMin) / 25 * 100).toFixed(0);
+      const typicalLeft = (f.typicalNsc / 25 * 100).toFixed(0);
+      html += '<div style="padding:12px 0;border-bottom:1px solid var(--border)">';
+      html += '<div style="display:flex;justify-content:space-between;align-items:flex-start">';
+      html += '<div><div style="font-size:15px;font-weight:700">' + f.name + '</div>';
+      html += '<div style="font-size:12px;color:var(--text-light)">' + f.type + ' \u00b7 ' + f.grassType + ' \u00b7 Protein: ' + f.protein + '</div></div>';
+      html += '<div style="text-align:right"><div style="font-size:14px;font-weight:700;color:var(--success)">' + f.typicalNsc + '%</div><div style="font-size:10px;color:var(--text-light)">Typical NSC</div></div></div>';
+      // NSC range bar
+      html += '<div style="margin:8px 0"><div class="forage-range-bar" style="max-width:100%;width:100%"><div class="forage-range-fill" style="left:' + barLeft + '%;width:' + barWidth + '%"></div><div style="position:absolute;left:' + typicalLeft + '%;top:-3px;width:3px;height:14px;background:var(--primary);border-radius:2px" title="Typical: ' + f.typicalNsc + '%"></div></div>';
+      html += '<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-light);margin-top:2px"><span>0%</span><span>Range: ' + rangeMin + '\u2013' + rangeMax + '%</span><span>25%</span></div></div>';
+      html += '<div style="font-size:12px;color:var(--text-light);margin-top:4px">' + f.notes + '</div>';
+      if (f.soakable) html += '<div style="font-size:11px;color:var(--accent);margin-top:4px">\ud83d\udca7 Soakable \u2014 reduces NSC by ~' + f.soakReduction + '%</div>';
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+
+  // Compare bar
+  if (compareList.length > 0) {
+    html += '<div class="compare-bar"><span>' + compareList.length + '/3 selected</span>';
+    html += '<div style="display:flex;gap:8px"><button class="compare-btn" onclick="compareList=[];renderFeedsDb()">Clear</button>';
+    if (compareList.length >= 2) html += '<button class="compare-btn" onclick="showCompare()">Compare \u2192</button>';
+    html += '</div></div>';
+  }
+
+  el.innerHTML = html;
+}
 
 // ── Render: Summary ──
 function renderSummary(){
