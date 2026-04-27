@@ -596,6 +596,27 @@ html+='</div>';
 // Reset button
 html+='<div style="text-align:right;margin-bottom:8px"><button class="btn btn-outline btn-sm" onclick="resetFeedAdj(\''+h.id+'\')" title="Reset to recommended values">🔄 Reset to Recommended</button></div>';
 
+// Current commercial feed card
+if(h.currentFeed && h.currentFeed.id){
+const cf=h.currentFeed;
+const cfMinFeed=(cf.feedRate.min*h.weight/cf.feedRate.per).toFixed(1);
+const cfMaxFeed=(cf.feedRate.max*h.weight/cf.feedRate.per).toFixed(1);
+const nscColor=cf.nsc<=10?'var(--success)':cf.nsc<=13?'var(--warning)':'var(--danger)';
+html+='<div class="card"><h3>🏷 Current Feed</h3>';
+html+='<div style="display:flex;justify-content:space-between;align-items:center">';
+html+='<div><div style="font-size:11px;color:var(--text-light);font-weight:600;text-transform:uppercase">'+cf.brand+'</div>';
+html+='<div style="font-size:15px;font-weight:700">'+cf.name+'</div></div>';
+html+='<div style="text-align:center"><div style="font-size:18px;font-weight:700;color:'+nscColor+'">'+cf.nsc+'%</div><div style="font-size:10px;color:var(--text-light)">NSC</div></div></div>';
+html+='<div style="display:flex;gap:16px;margin:10px 0;font-size:12px;color:var(--text-light)">';
+html+='<span>Sugar '+cf.sugar+'%</span><span>Starch '+cf.starch+'%</span><span>Protein '+cf.protein+'%</span><span>Fat '+cf.fat+'%</span></div>';
+html+='<div style="font-size:13px;margin-top:6px">📊 Suggested: <strong>'+cfMinFeed+' – '+cfMaxFeed+' lb/day</strong></div>';
+html+='<div style="margin-top:8px;text-align:right"><button class="btn btn-outline btn-sm" onclick="selectedTab=\'feeds_db\';render()">Change Feed →</button></div>';
+html+='</div>';
+} else {
+html+='<div class="card" style="text-align:center;padding:20px"><div style="font-size:13px;color:var(--text-light);margin-bottom:8px">No commercial feed selected</div>';
+html+='<button class="btn btn-accent btn-sm" onclick="selectedTab=\'feeds_db\';render()">🏷 Browse Low NSC Feeds</button></div>';
+}
+
 if(rec.notes.length){
 html+='<div class="card"><h3>📝 Feeding Notes</h3>';
 rec.notes.forEach(n=>{html+=`<div class="notes">${n}</div>`;});
@@ -852,8 +873,15 @@ function showFeedDetail(feedId) {
     });
     html += '</div></div>';
   }
+  // Set as current feed button
+  const isCurrent = h && h.currentFeed && h.currentFeed.id === feed.id;
+  if (isCurrent) {
+    html += '<button class="btn btn-outline btn-block" style="margin-top:12px" disabled>✅ Current Feed for ' + h.name + '</button>';
+  } else {
+    html += '<button class="btn btn-accent btn-block" style="margin-top:12px" onclick="setCurrentFeed(\'' + feed.id + '\')">' + '🌾 Set as Current Feed' + (h ? ' for ' + h.name : '') + '</button>';
+  }
   // Compare button
-  html += '<button class="btn ' + (inCompare ? 'btn-danger' : 'btn-primary') + ' btn-block" style="margin-top:12px" onclick="toggleCompare(\'' + feed.id + '\');closeFeedDetail()">' + (inCompare ? 'Remove from Compare' : '\u2795 Add to Compare') + '</button>';
+  html += '<button class="btn ' + (inCompare ? 'btn-danger' : 'btn-outline') + ' btn-block" style="margin-top:8px" onclick="toggleCompare(\'' + feed.id + '\');closeFeedDetail()">' + (inCompare ? 'Remove from Compare' : '\u2795 Add to Compare') + '</button>';
   html += '</div>';
   overlay.innerHTML = html;
   document.body.appendChild(overlay);
@@ -865,6 +893,36 @@ function closeFeedDetail() {
   if (overlay) overlay.remove();
 }
 window.closeFeedDetail = closeFeedDetail;
+
+function setCurrentFeed(feedId) {
+  const feed = LOW_NSC_FEEDS.find(f => f.id === feedId);
+  if (!feed) return;
+  const h = state.horses[selectedHorse];
+  if (!h) return;
+  // Store selected feed on the horse
+  if (!h.currentFeed) h.currentFeed = {};
+  h.currentFeed = {
+    id: feed.id,
+    brand: feed.brand,
+    name: feed.name,
+    nsc: feed.nsc,
+    sugar: feed.sugar,
+    starch: feed.starch,
+    protein: feed.protein,
+    fat: feed.fat,
+    fiber: feed.fiber,
+    feedRate: feed.feedRate
+  };
+  save();
+  closeFeedDetail();
+  // Show confirmation
+  const toast = document.createElement('div');
+  toast.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:var(--success);color:#fff;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;z-index:300;animation:fadeIn .2s';
+  toast.textContent = '\u2705 ' + feed.brand + ' ' + feed.name + ' set for ' + h.name;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 2500);
+}
+window.setCurrentFeed = setCurrentFeed;
 
 function toggleCompare(feedId) {
   const idx = compareList.indexOf(feedId);
