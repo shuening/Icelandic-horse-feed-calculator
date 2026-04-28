@@ -630,7 +630,7 @@ html+='<input type="number" step="0.1" min="0" max="50" value="'+cfVal.toFixed(1
 html+='<span class="unit">lb</span>';
 html+='<button onclick="adjFeed(\''+h.id+'\',\''+cfId+'\',0.5)">+</button>';
 html+='</div></div>';
-html+='<div style="text-align:right;margin-top:4px"><button class="btn btn-outline btn-sm" style="font-size:11px" onclick="switchTab(\'feeds_db\')">Change →</button></div>';
+html+='<div style="text-align:right;margin-top:4px;display:flex;justify-content:flex-end;gap:6px"><button class="btn btn-outline btn-sm" style="font-size:11px;color:var(--danger)" onclick="removeCurrentFeed(\''+h.id+'\')">&times; Remove</button><button class="btn btn-outline btn-sm" style="font-size:11px" onclick="switchTab(\'feeds_db\')">Change →</button></div>';
 } else {
 html+='<div style="border-top:2px solid var(--border);padding-top:10px;margin-top:4px;text-align:center">';
 html+='<button class="btn btn-outline btn-sm" onclick="switchTab(\'feeds_db\')">🏷 Add Commercial Feed</button></div>';
@@ -951,6 +951,16 @@ function setCurrentFeed(feedId) {
   setTimeout(() => toast.remove(), 2500);
 }
 window.setCurrentFeed = setCurrentFeed;
+
+window.removeCurrentFeed = function(hid) {
+  const h = state.horses.find(x => x.id === hid);
+  if (!h || !h.currentFeed) return;
+  const cfId = 'commercial_' + h.currentFeed.id;
+  delete state.adjustments[h.id + '_' + cfId];
+  delete h.currentFeed;
+  save();
+  renderRecs();
+};
 
 function toggleCompare(feedId) {
   const idx = compareList.indexOf(feedId);
