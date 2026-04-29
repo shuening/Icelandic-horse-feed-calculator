@@ -1,8 +1,8 @@
-name: Deploy Production (main branch)
+name: Deploy V2 Preview (v2 branch)
 
 on:
   push:
-    branches: [main]
+    branches: [v2]
 
 permissions:
   contents: read
@@ -10,13 +10,19 @@ permissions:
   id-token: write
 
 jobs:
-  deploy-production:
+  deploy-v2:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout main
+      - name: Checkout v2
+        uses: actions/checkout@v4
+        with:
+          ref: v2
+
+      - name: Checkout main into _main
         uses: actions/checkout@v4
         with:
           ref: main
+          path: _main
 
       - name: Check if dev branch exists
         id: check-dev
@@ -34,38 +40,20 @@ jobs:
           ref: dev
           path: _dev
 
-      - name: Check if v2 branch exists
-        id: check-v2
-        run: |
-          if git ls-remote --heads origin v2 | grep -q v2; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Checkout v2 into _v2
-        if: steps.check-v2.outputs.exists == 'true'
-        uses: actions/checkout@v4
-        with:
-          ref: v2
-          path: _v2
-
       - name: Build combined site
         run: |
           mkdir -p _site/preview _site/v2
           # Main (production) at root
-          cp index.html _site/index.html
-          cp firebase-rules.json _site/firebase-rules.json 2>/dev/null || true
+          cp _main/index.html _site/index.html
+          cp _main/firebase-rules.json _site/firebase-rules.json 2>/dev/null || true
           # Dev preview at /preview/
           if [ -d "_dev" ]; then
             cp _dev/index.html _site/preview/index.html
             cp _dev/firebase-rules.json _site/preview/firebase-rules.json 2>/dev/null || true
           fi
           # V2 preview at /v2/
-          if [ -d "_v2" ]; then
-            cp _v2/index.html _site/v2/index.html
-            cp _v2/firebase-rules.json _site/v2/firebase-rules.json 2>/dev/null || true
-          fi
+          cp index.html _site/v2/index.html
+          cp firebase-rules.json _site/v2/firebase-rules.json 2>/dev/null || true
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
