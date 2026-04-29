@@ -108,7 +108,15 @@ canvas{width:100%!important;height:100%!important}
 .season-toggle{display:flex;gap:8px;margin-bottom:16px}
 .season-btn{flex:1;padding:10px;border:2px solid var(--border);border-radius:8px;text-align:center;cursor:pointer;font-size:13px;font-weight:600;background:var(--card);transition:.2s}
 .season-btn.active{border-color:var(--accent);background:var(--accent);color:#fff}
-.horse-settings-card{margin-bottom:16px}
+.horse-settings-card{margin-bottom:16px;position:relative}
+.horse-settings-card .delete-horse-btn{position:absolute;top:12px;right:12px;background:none;border:none;font-size:18px;color:var(--text-light);cursor:pointer;padding:4px 8px;border-radius:6px;transition:.2s}
+.horse-settings-card .delete-horse-btn:hover{color:var(--danger);background:rgba(220,53,69,.1)}
+.emoji-picker{display:flex;gap:6px;flex-wrap:wrap}
+.emoji-opt{width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:20px;border-radius:8px;border:2px solid var(--border);cursor:pointer;transition:.2s}
+.emoji-opt.active{border-color:var(--accent);background:var(--accent);transform:scale(1.1)}
+.add-horse-card{border:2px dashed var(--border);text-align:center;cursor:pointer;transition:.2s;padding:24px}
+.add-horse-card:hover{border-color:var(--accent);background:rgba(139,90,43,.05)}
+.add-horse-form .form-group{margin-bottom:12px}
 .condition-chip{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:12px;border:1px solid var(--border);background:var(--bg);cursor:pointer;transition:.15s}
 .condition-chip.active{background:var(--primary);color:#fff;border-color:var(--primary)}
 .sync-status{display:flex;align-items:center;gap:6px;font-size:12px;padding:6px 10px;border-radius:8px;margin-bottom:8px}
@@ -1356,7 +1364,15 @@ html+=`<div class="season-btn${state.season===s?' active':''}" onclick="setSeaso
 html+='</div><div style="font-size:12px;color:var(--text-light)">Summer = more pasture available, Winter = more hay needed</div></div>';
 
 state.horses.forEach((h,hi)=>{
-html+=`<div class="card horse-settings-card"><h3>${h.emoji} ${h.name}</h3>`;
+html+=`<div class="card horse-settings-card">`;
+if(state.horses.length>1)html+=`<button class="delete-horse-btn" onclick="deleteHorse(${hi})" title="Delete ${h.name}">🗑️</button>`;
+html+=`<h3>${h.emoji} ${h.name}</h3>`;
+html+=`<div class="form-group"><label>Emoji</label><div class="emoji-picker">`;
+const HORSE_EMOJIS=['🐎','🏇','🐴','🦄','🐾','🐵','⭐','❤️','💙','🌟'];
+HORSE_EMOJIS.forEach(e=>{
+html+=`<div class="emoji-opt${h.emoji===e?' active':''}" onclick="updateHorse(${hi},'emoji','${e}')">${e}</div>`;
+});
+html+='</div></div>';
 html+=`<div class="form-group"><label>Name</label><input value="${h.name}" onchange="updateHorse(${hi},'name',this.value)"></div>`;
 html+=`<div class="form-group"><label>Weight (lb)</label><input type="number" value="${h.weight}" onchange="updateHorse(${hi},'weight',+this.value)"></div>`;
 html+=`<div class="form-group"><label>Ideal Weight (lb) — leave 0 for none</label><input type="number" value="${h.idealWeight||0}" onchange="updateHorse(${hi},'idealWeight',+this.value||undefined)"></div>`;
@@ -1372,6 +1388,36 @@ html+=`<div class="activity-opt${h.activity===a.id?' active':''}" onclick="setAc
 });
 html+='</div></div></div>';
 });
+
+// Add Horse button / form
+html+='<div class="card add-horse-card" id="add-horse-section">';
+if(!window._showAddHorseForm){
+html+='<div onclick="showAddHorseForm()" style="cursor:pointer"><div style="font-size:32px;margin-bottom:8px">➕</div><div style="font-weight:600;color:var(--text-light)">Add Horse</div></div>';
+}else{
+html+='<div class="add-horse-form" style="text-align:left">';
+html+='<h3 style="margin-bottom:12px">🐴 New Horse</h3>';
+html+='<div class="form-group"><label>Name</label><input id="new-horse-name" placeholder="e.g. Blaze"></div>';
+html+='<div class="form-group"><label>Emoji</label><div class="emoji-picker">';
+const NEW_EMOJIS=['🐎','🏇','🐴','🦄','🐾','🐵','⭐','❤️','💙','🌟'];
+NEW_EMOJIS.forEach((e,i)=>{
+html+=`<div class="emoji-opt${i===0?' active':''}" onclick="selectNewHorseEmoji(this,'${e}')">${e}</div>`;
+});
+html+='</div></div>';
+html+='<div class="form-group"><label>Weight (lb)</label><input id="new-horse-weight" type="number" placeholder="700" value="700"></div>';
+html+='<div class="form-group"><label>Conditions</label><div style="display:flex;flex-wrap:wrap;gap:6px" id="new-horse-conditions">';
+ALL_CONDITIONS.forEach(c=>{
+html+=`<div class="condition-chip" data-cond="${c}" onclick="toggleNewCondition(this,'${c}')">${CONDITION_LABELS[c]}</div>`;
+});
+html+='</div></div>';
+html+='<div class="form-group"><label>Activity Level</label><div class="activity-selector" id="new-horse-activity">';
+ACTIVITIES.forEach(a=>{
+html+=`<div class="activity-opt${a.id==='moderate'?' active':''}" data-act="${a.id}" onclick="selectNewHorseActivity(this,'${a.id}')">${a.label}</div>`;
+});
+html+='</div></div>';
+html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-primary" style="flex:1" onclick="addHorse()">✅ Add Horse</button><button class="btn btn-outline" style="flex:1" onclick="cancelAddHorse()">Cancel</button></div>';
+html+='</div>';
+}
+html+='</div>';
 
 // ── Cloud Sync section ──
 html+='<div class="card"><h3>☁️ Cloud Sync</h3>';
@@ -1405,6 +1451,61 @@ if(c==='healthy'){h.conditions=h.conditions.filter(x=>x!=='overweight'&&x!=='ir'
 save();renderSettings();
 };
 window.setActivity=function(i,a){state.horses[i].activity=a;save();renderSettings()};
+
+// ── Add / Delete Horse ──
+window._showAddHorseForm=false;
+window._newHorseEmoji='🐎';
+window._newHorseConditions=[];
+window._newHorseActivity='moderate';
+
+window.showAddHorseForm=function(){window._showAddHorseForm=true;window._newHorseEmoji='🐎';window._newHorseConditions=[];window._newHorseActivity='moderate';renderSettings()};
+window.cancelAddHorse=function(){window._showAddHorseForm=false;renderSettings()};
+
+window.selectNewHorseEmoji=function(el,emoji){
+window._newHorseEmoji=emoji;
+document.querySelectorAll('#add-horse-section .emoji-opt').forEach(x=>x.classList.remove('active'));
+el.classList.add('active');
+};
+
+window.toggleNewCondition=function(el,c){
+const idx=window._newHorseConditions.indexOf(c);
+if(idx>=0){window._newHorseConditions.splice(idx,1);el.classList.remove('active')}
+else{
+window._newHorseConditions.push(c);el.classList.add('active');
+if(c==='overweight'||c==='ir'){window._newHorseConditions=window._newHorseConditions.filter(x=>x!=='healthy');document.querySelectorAll('#new-horse-conditions .condition-chip[data-cond=healthy]').forEach(x=>x.classList.remove('active'))}
+if(c==='healthy'){window._newHorseConditions=window._newHorseConditions.filter(x=>x!=='overweight'&&x!=='ir');document.querySelectorAll('#new-horse-conditions .condition-chip[data-cond=overweight],#new-horse-conditions .condition-chip[data-cond=ir]').forEach(x=>x.classList.remove('active'))}
+}
+};
+
+window.selectNewHorseActivity=function(el,a){
+window._newHorseActivity=a;
+document.querySelectorAll('#new-horse-activity .activity-opt').forEach(x=>x.classList.remove('active'));
+el.classList.add('active');
+};
+
+window.addHorse=function(){
+const name=(document.getElementById('new-horse-name').value||'').trim();
+const weight=+(document.getElementById('new-horse-weight').value)||700;
+if(!name){alert('Please enter a horse name');return}
+const id=name.toLowerCase().replace(/[^a-z0-9]/g,'_')+'_'+Date.now();
+if(state.horses.some(h=>h.name.toLowerCase()===name.toLowerCase())){alert('A horse with this name already exists');return}
+const conditions=window._newHorseConditions.length?window._newHorseConditions:['healthy'];
+state.horses.push({id,name,weight,conditions,activity:window._newHorseActivity,emoji:window._newHorseEmoji});
+window._showAddHorseForm=false;
+save();render();
+};
+
+window.deleteHorse=function(i){
+const h=state.horses[i];
+if(!confirm('Delete '+h.emoji+' '+h.name+'? This will also remove their feed adjustments and supplement settings.'))return;
+const hid=h.id;
+// Clean up adjustments and supplements for this horse
+Object.keys(state.adjustments||{}).forEach(k=>{if(k.startsWith(hid+'_'))delete state.adjustments[k]});
+Object.keys(state.supplements||{}).forEach(k=>{if(k.includes('_'+hid+'_'))delete state.supplements[k]});
+state.horses.splice(i,1);
+if(selectedHorse>=state.horses.length)selectedHorse=Math.max(0,state.horses.length-1);
+save();render();
+};
 window.resetDefaults=function(){
 if(!confirm('Reset everything to defaults? This will clear all adjustments.'))return;
 state=defaultState();save();
