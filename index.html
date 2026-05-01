@@ -229,6 +229,7 @@ if(remote.adjustments)state.adjustments=remote.adjustments;
 if(remote.supplements)state.supplements=remote.supplements;
 if(remote.horses)state.horses=remote.horses;
 if(remote.season)state.season=remote.season;
+if(remote.weightUnit)state.weightUnit=remote.weightUnit;
 state._ts=remoteTs;
 localStorage.setItem('hfc_state',JSON.stringify(state));
 render();
@@ -250,6 +251,7 @@ horses:state.horses,
 adjustments:state.adjustments||{},
 supplements:state.supplements||{},
 season:state.season,
+weightUnit:state.weightUnit||'lb',
 _ts:state._ts
 }).then(()=>{syncPaused=false}).catch(()=>{syncPaused=false});
 }
@@ -357,14 +359,25 @@ function defaultState(){
 return{
 horses:JSON.parse(JSON.stringify(DEFAULT_HORSES)),
 season:getAutoSeason(),
+weightUnit:'lb',
 feeds:{},supplements:{},adjustments:{}
 };
 }
+
+// ── Unit Conversion Helpers ──
+const LB_TO_KG=0.45359237;
+function getWeightUnit(){return state.weightUnit||'lb'}
+function toDisplay(lb){return getWeightUnit()==='kg'?lb*LB_TO_KG:lb}
+function toLb(displayVal){return getWeightUnit()==='kg'?displayVal/LB_TO_KG:displayVal}
+window.toLb=toLb;
+function wu(){return getWeightUnit()}
+function fmtW(lb,dec){dec=dec!==undefined?dec:1;return toDisplay(lb).toFixed(dec)+' '+wu()}
 function loadState(){
 try{const s=localStorage.getItem('hfc_state');if(s){
 const parsed=JSON.parse(s);
 // Auto-update season on each load
 parsed.season=getAutoSeason();
+if(!parsed.weightUnit)parsed.weightUnit='lb';
 return parsed;
 }}catch(e){}
 return defaultState();
@@ -434,7 +447,7 @@ notes.push('🚫 Avoid or minimize alfalfa (high sugar risk for IR)');
 notes.push('💧 Soak hay 30-60 min to reduce sugar content (can cut sugar up to 50%)');
 notes.push('🚨 PASTURE WARNING: IR/overweight horses must have restricted grazing — use a grazing muzzle (reduces intake ~80%) or limit to early morning only. Avoid afternoon pasture when fructan levels peak.');
 if(hasOW)notes.push('⚖️ Target lower end of range for weight management');
-if(h.idealWeight)notes.push('🎯 Current: '+h.weight+' lb → Ideal: '+h.idealWeight+' lb (target '+Math.round((h.weight-h.idealWeight)/h.weight*100)+'% weight loss)');
+if(h.idealWeight)notes.push('🎯 Current: '+fmtW(h.weight)+' → Ideal: '+fmtW(h.idealWeight)+' (target '+Math.round((h.weight-h.idealWeight)/h.weight*100)+'% weight loss)');
 notes.push('💊 Consider Magnesium supplementation to improve insulin sensitivity');
 }
 // Healthy horses (Odinn/Uffie-like)
@@ -583,16 +596,16 @@ const pct=lo>0?((total/hi)*100):0;
 const barClass=total<lo?'under':total>hi?'over':'good';
 
 let html=horseTabs(selectedHorse);
-const idealW=h.idealWeight?` → Ideal: ${h.idealWeight} lb`:'';
-html+=`<div class="card"><h3>${h.emoji} ${h.name} <span style="font-size:13px;color:var(--text-light)">${h.weight} lb${idealW}</span></h3>`;
+const idealW=h.idealWeight?` → Ideal: ${fmtW(h.idealWeight)}`:'';
+html+=`<div class="card"><h3>${h.emoji} ${h.name} <span style="font-size:13px;color:var(--text-light)">${fmtW(h.weight)}${idealW}</span></h3>`;
 html+='<div class="conditions-list">';
 h.conditions.forEach(c=>{
 html+=`<span class="badge ${CONDITION_BADGE[c]||''}">${CONDITION_LABELS[c]||c}</span>`;
 });
 html+='</div>';
-html+=`<div class="target-label">Daily Total: <strong>${total.toFixed(1)} lb</strong> / Target: ${lo.toFixed(1)}–${hi.toFixed(1)} lb</div>`;
+html+=`<div class="target-label">Daily Total: <strong>${fmtW(total)}</strong> / Target: ${fmtW(lo)}–${fmtW(hi)}</div>`;
 html+=`<div class="target-bar"><div class="target-fill ${barClass}" style="width:${Math.min(120,pct).toFixed(0)}%"></div></div>`;
-html+=`<div class="target-range"><span>${lo.toFixed(1)} lb</span><span>${hi.toFixed(1)} lb</span></div>`;
+html+=`<div class="target-range"><span>${fmtW(lo)}</span><span>${fmtW(hi)}</span></div>`;
 html+='</div>';
 
 html+='<div class="card"><h3>🥕 Feeding Recommendation</h3>';
@@ -610,11 +623,11 @@ const adj=getAdjusted(h.id,f.id);
 const val=adj!==null?adj:recVal;
 const isAdj=adj!==null&&Math.abs(adj-recVal)>0.05;
 html+=`<div class="feed-row">
-<div class="feed-name">${f.name}${isAdj?`<small>Rec: ${recVal.toFixed(1)} lb</small>`:''}</div>
+<div class="feed-name">${f.name}${isAdj?`<small>Rec: ${fmtW(recVal)}</small>`:''}</div>
 <div class="feed-controls">
 <button onclick="adjFeed('${h.id}','${f.id}',-0.5)">−</button>
-<input type="number" step="0.1" min="0" max="50" value="${val.toFixed(1)}" onchange="setFeed('${h.id}','${f.id}',this.value)" id="feed_${h.id}_${f.id}">
-<span class="unit">${f.unit}</span>
+<input type="number" step="0.1" min="0" max="50" value="${toDisplay(val).toFixed(1)}" onchange="setFeed('${h.id}','${f.id}',this.value)" id="feed_${h.id}_${f.id}">
+<span class="unit">${wu()}</span>
 <button onclick="adjFeed('${h.id}','${f.id}',0.5)">+</button>
 </div></div>`;
 });
@@ -632,12 +645,12 @@ const nscColor=cf.nsc<=10?'var(--success)':cf.nsc<=13?'var(--warning)':'var(--da
 html+='<div class="feed-row" style="border-top:2px solid var(--border);padding-top:10px;margin-top:4px">';
 html+='<div class="feed-name"><span style="font-size:11px;color:var(--text-light);font-weight:600;text-transform:uppercase">'+cf.brand+'</span><br>';
 html+='<strong>'+cf.name+'</strong> <span style="font-size:11px;color:'+nscColor+';font-weight:700">NSC '+cf.nsc+'%</span>';
-if(cfIsAdj) html+='<small>Rec: '+cfRecVal.toFixed(1)+' lb (range: '+cfMinFeed+'–'+cfMaxFeed+')</small>';
-else html+='<small>Range: '+cfMinFeed+'–'+cfMaxFeed+' lb/day</small>';
+if(cfIsAdj) html+='<small>Rec: '+fmtW(cfRecVal)+' (range: '+fmtW(cfMinFeed)+'–'+fmtW(cfMaxFeed)+')</small>';
+else html+='<small>Range: '+fmtW(cfMinFeed)+'–'+fmtW(cfMaxFeed)+'/day</small>';
 html+='</div><div class="feed-controls">';
 html+='<button onclick="adjFeed(\''+h.id+'\',\''+cfId+'\',-0.5)">−</button>';
-html+='<input type="number" step="0.1" min="0" max="50" value="'+cfVal.toFixed(1)+'" onchange="setFeed(\''+h.id+'\',\''+cfId+'\',this.value)">';
-html+='<span class="unit">lb</span>';
+html+='<input type="number" step="0.1" min="0" max="50" value="'+toDisplay(cfVal).toFixed(1)+'" onchange="setFeed(\''+h.id+'\',\''+cfId+'\',this.value)">';
+html+='<span class="unit">'+wu()+'</span>';
 html+='<button onclick="adjFeed(\''+h.id+'\',\''+cfId+'\',0.5)">+</button>';
 html+='</div></div>';
 html+='<div style="text-align:right;margin-top:4px;display:flex;justify-content:flex-end;gap:6px"><button class="btn btn-outline btn-sm" style="font-size:11px;color:var(--danger)" onclick="removeCurrentFeed(\''+h.id+'\')">&times; Remove</button><button class="btn btn-outline btn-sm" style="font-size:11px" onclick="switchTab(\'feeds_db\')">Change →</button></div>';
@@ -661,6 +674,9 @@ selectedHorse=+e.target.closest('.horse-tab').dataset.idx;renderRecs();
 }));
 }
 window.adjFeed=function(hid,fid,delta){
+// delta is in display units; convert step to display-aware
+const step=getWeightUnit()==='kg'?0.25:0.5;
+delta=delta>0?step:-step;
 const h=state.horses.find(x=>x.id===hid);
 const rec=recommend(h);
 const adj=getAdjusted(hid,fid);
@@ -670,11 +686,14 @@ if(fid.startsWith('commercial_') && h.currentFeed && h.currentFeed.id){
 defaultVal=+(h.currentFeed.feedRate.min*h.weight/h.currentFeed.feedRate.per).toFixed(1);
 }
 const cur=adj!==null?adj:defaultVal;
-setAdjusted(hid,fid,Math.max(0,+(cur+delta).toFixed(1)));
+const curDisplay=toDisplay(cur);
+const newDisplay=Math.max(0,+(curDisplay+delta).toFixed(2));
+setAdjusted(hid,fid,Math.max(0,+toLb(newDisplay).toFixed(1)));
 renderRecs();
 };
 window.setFeed=function(hid,fid,val){
-setAdjusted(hid,fid,Math.max(0,+parseFloat(val).toFixed(1)));
+// val is in display unit, convert to lb for storage
+setAdjusted(hid,fid,Math.max(0,+toLb(parseFloat(val)).toFixed(1)));
 renderRecs();
 };
 window.resetFeedAdj=function(hid){
@@ -888,8 +907,8 @@ function showFeedDetail(feedId) {
   feed.suitableFor.forEach(s => { html += '<span class="badge badge-healthy">' + s + '</span>'; });
   html += '</div></div>';
   // Feed rate
-  html += '<div class="card" style="margin:12px 0;background:var(--bg)"><div style="font-size:12px;font-weight:700;color:var(--text-light);text-transform:uppercase;margin-bottom:4px">Feed Rate for ' + (h ? h.name + ' (' + weight + ' lb)' : weight + ' lb horse') + '</div>';
-  html += '<div style="font-size:18px;font-weight:700;color:var(--primary)">' + minFeed + ' \u2013 ' + maxFeed + ' lb/day</div>';
+  html += '<div class="card" style="margin:12px 0;background:var(--bg)"><div style="font-size:12px;font-weight:700;color:var(--text-light);text-transform:uppercase;margin-bottom:4px">Feed Rate for ' + (h ? h.name + ' (' + fmtW(weight) + ')' : fmtW(weight) + ' horse') + '</div>';
+  html += '<div style="font-size:18px;font-weight:700;color:var(--primary)">' + fmtW(+minFeed) + ' \u2013 ' + fmtW(+maxFeed) + '/day</div>';
   html += '<div style="font-size:11px;color:var(--text-light)">Based on ' + feed.feedRate.min + '\u2013' + feed.feedRate.max + ' lb per ' + feed.feedRate.per + ' lb body weight</div></div>';
   // Warning
   if (feed.warning) {
@@ -1022,7 +1041,7 @@ function showCompare() {
   feeds.forEach(f => {
     const mn = (f.feedRate.min * weight / f.feedRate.per).toFixed(1);
     const mx = (f.feedRate.max * weight / f.feedRate.per).toFixed(1);
-    html += '<td>' + mn + '\u2013' + mx + ' lb</td>';
+    html += '<td>' + fmtW(+mn) + '\u2013' + fmtW(+mx) + '</td>';
   });
   html += '</tr></table></div></div>';
   overlay.innerHTML = html;
@@ -1167,15 +1186,15 @@ const rec=recommend(h);
 const adj=getAdjusted(h.id,f.id);
 const val=adj!==null?adj:(rec.feeds[f.id]||0);
 rowTotal+=val;
-html+=`<td>${val.toFixed(1)}</td>`;
+html+=`<td>${toDisplay(val).toFixed(1)}</td>`;
 });
 grandTotals[f.id]=rowTotal;
-html+=`<td><strong>${rowTotal.toFixed(1)}</strong></td></tr>`;
+html+=`<td><strong>${toDisplay(rowTotal).toFixed(1)}</strong></td></tr>`;
 });
 const gt=Object.values(grandTotals).reduce((a,b)=>a+b,0);
 html+=`<tr class="total-row"><td><strong>Total</strong></td>`;
-state.horses.forEach(h=>{const rec=recommend(h);html+=`<td><strong>${getFeedTotal(h,rec).toFixed(1)}</strong></td>`});
-html+=`<td><strong>${gt.toFixed(1)} lb</strong></td></tr></table></div></div>`;
+state.horses.forEach(h=>{const rec=recommend(h);html+=`<td><strong>${toDisplay(getFeedTotal(h,rec)).toFixed(1)}</strong></td>`});
+html+=`<td><strong>${fmtW(gt)}</strong></td></tr></table></div></div>`;
 
 // Supplements summary
 html+='<div class="card"><h3>💊 Supplement Summary</h3><div style="overflow-x:auto"><table class="summary-table"><tr><th>Supplement</th>';
@@ -1365,6 +1384,13 @@ html+=`<div class="season-btn${state.season===s?' active':''}" onclick="setSeaso
 });
 html+='</div><div style="font-size:12px;color:var(--text-light)">Summer = more pasture available, Winter = more hay needed</div></div>';
 
+// Unit selector
+html+='<div class="card"><h3>⚖️ Weight Unit</h3><div class="season-toggle">';
+['lb','kg'].forEach(u=>{
+html+=`<div class="season-btn${getWeightUnit()===u?' active':''}" onclick="setWeightUnit('${u}')">${u==='lb'?'🇺🇸 Pounds (lb)':'🇰🇬 Kilograms (kg)'}</div>`;
+});
+html+='</div><div style="font-size:12px;color:var(--text-light)">All weights and feed amounts will display in your chosen unit</div></div>';
+
 state.horses.forEach((h,hi)=>{
 html+=`<div class="card horse-settings-card">`;
 if(state.horses.length>1)html+=`<button class="delete-horse-btn" onclick="deleteHorse(${hi})" title="Delete ${h.name}">🗑️</button>`;
@@ -1376,8 +1402,8 @@ html+=`<div class="emoji-opt${h.emoji===e?' active':''}" onclick="updateHorse(${
 });
 html+='</div></div>';
 html+=`<div class="form-group"><label>Name</label><input value="${h.name}" onchange="updateHorse(${hi},'name',this.value)"></div>`;
-html+=`<div class="form-group"><label>Weight (lb)</label><input type="number" value="${h.weight}" onchange="updateHorse(${hi},'weight',+this.value)"></div>`;
-html+=`<div class="form-group"><label>Ideal Weight (lb) — leave 0 for none</label><input type="number" value="${h.idealWeight||0}" onchange="updateHorse(${hi},'idealWeight',+this.value||undefined)"></div>`;
+html+=`<div class="form-group"><label>Weight (${wu()})</label><input type="number" value="${toDisplay(h.weight).toFixed(0)}" onchange="updateHorse(${hi},'weight',toLb(+this.value))"></div>`;
+html+=`<div class="form-group"><label>Ideal Weight (${wu()}) — leave 0 for none</label><input type="number" value="${toDisplay(h.idealWeight||0).toFixed(0)}" onchange="updateHorse(${hi},'idealWeight',toLb(+this.value)||undefined)"></div>`;
 html+=`<div class="form-group"><label>Conditions</label><div style="display:flex;flex-wrap:wrap;gap:6px">`;
 ALL_CONDITIONS.forEach(c=>{
 const active=h.conditions.includes(c);
@@ -1405,7 +1431,7 @@ NEW_EMOJIS.forEach((e,i)=>{
 html+=`<div class="emoji-opt${i===0?' active':''}" onclick="selectNewHorseEmoji(this,'${e}')">${e}</div>`;
 });
 html+='</div></div>';
-html+='<div class="form-group"><label>Weight (lb)</label><input id="new-horse-weight" type="number" placeholder="700" value="700"></div>';
+html+='<div class="form-group"><label>Weight ('+wu()+')</label><input id="new-horse-weight" type="number" placeholder="'+(getWeightUnit()==='kg'?'320':'700')+'" value="'+(getWeightUnit()==='kg'?'320':'700')+'"></div>';
 html+='<div class="form-group"><label>Conditions</label><div style="display:flex;flex-wrap:wrap;gap:6px" id="new-horse-conditions">';
 ALL_CONDITIONS.forEach(c=>{
 html+=`<div class="condition-chip" data-cond="${c}" onclick="toggleNewCondition(this,'${c}')">${CONDITION_LABELS[c]}</div>`;
@@ -1439,6 +1465,7 @@ html+='<div class="card"><button class="btn btn-danger btn-block" onclick="reset
 el.innerHTML=html;
 }
 window.setSeason=function(s){state.season=s;save();renderSettings()};
+window.setWeightUnit=function(u){state.weightUnit=u;save();render()};
 window.updateHorse=function(i,k,v){state.horses[i][k]=v;save();renderSettings()};
 window.toggleCondition=function(i,c){
 const h=state.horses[i];
@@ -1487,7 +1514,7 @@ el.classList.add('active');
 
 window.addHorse=function(){
 const name=(document.getElementById('new-horse-name').value||'').trim();
-const weight=+(document.getElementById('new-horse-weight').value)||700;
+const weight=Math.round(toLb(+(document.getElementById('new-horse-weight').value)||700));
 if(!name){alert('Please enter a horse name');return}
 const id=name.toLowerCase().replace(/[^a-z0-9]/g,'_')+'_'+Date.now();
 if(state.horses.some(h=>h.name.toLowerCase()===name.toLowerCase())){alert('A horse with this name already exists');return}
