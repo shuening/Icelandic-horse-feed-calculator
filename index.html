@@ -75,10 +75,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .supp-dose input{width:40px;text-align:center;border:1px solid var(--border);border-radius:6px;padding:3px;font-size:13px}
 .supp-dose .unit{font-size:11px;color:var(--text-light)}
 .summary-table{width:100%;font-size:13px;border-collapse:collapse}
-.summary-table th{text-align:left;padding:8px 6px;border-bottom:2px solid var(--border);font-size:12px;color:var(--text-light);font-weight:600}
-.summary-table td{padding:6px;border-bottom:1px solid var(--border)}
+.summary-table th{text-align:left;padding:8px 6px;border-bottom:2px solid var(--border);font-size:12px;color:var(--text-light);font-weight:600;white-space:nowrap;vertical-align:top}
+.summary-table td{padding:6px;border-bottom:1px solid var(--border);white-space:nowrap;vertical-align:top}
 .summary-table tr:last-child td{border-bottom:none}
 .summary-table .total-row{font-weight:700;background:var(--bg)}
+.summary-table .item-col{min-width:150px}
+.summary-table .horse-col{min-width:92px}
 .btn{padding:10px 20px;border-radius:var(--radius);border:none;font-size:14px;font-weight:600;cursor:pointer;transition:.2s}
 .btn-primary{background:var(--primary);color:#fff}
 .btn-primary:active{background:var(--primary-light)}
@@ -644,9 +646,9 @@ function renderSummary(){
 const el=document.getElementById('page-summary');
 const visibleHorses=getVisibleHorses();
 let html='<div class="card"><h3>📊 Daily Feed Summary</h3>';
-html+='<div style="overflow-x:auto"><table class="summary-table"><tr><th>Feed</th>';
-visibleHorses.forEach(h=>{html+=`<th>${escHtml(h.emoji)} ${escHtml(h.name)}</th>`});
-html+='<th>Total</th></tr>';
+html+='<div style="overflow-x:auto"><table class="summary-table"><tr><th class="item-col">Feed</th>';
+visibleHorses.forEach(h=>{html+=`<th class="horse-col">${escHtml(h.emoji)} ${escHtml(h.name)}</th>`});
+html+='<th class="horse-col">Total</th></tr>';
 let grandTotals={};
 FEED_TYPES.forEach(f=>{
 if(f.isPasture){
@@ -673,8 +675,8 @@ visibleHorses.forEach(h=>{const rec=recommend(h);html+=`<td><strong>${getFeedTot
 html+=`<td><strong>${gt.toFixed(1)} lb</strong></td></tr></table></div></div>`;
 
 // Supplements summary
-html+='<div class="card"><h3>💊 Supplement Summary</h3><div style="overflow-x:auto"><table class="summary-table"><tr><th>Supplement</th>';
-visibleHorses.forEach(h=>{html+=`<th>${h.emoji}</th>`});
+html+='<div class="card"><h3>💊 Supplement Summary</h3><div style="overflow-x:auto"><table class="summary-table"><tr><th class="item-col">Supplement</th>';
+visibleHorses.forEach(h=>{html+=`<th class="horse-col">${escHtml(h.emoji)} ${escHtml(h.name)}</th>`});
 html+='</tr>';
 const allSuppIds=new Set();
 visibleHorses.forEach(h=>getSuppsForHorse(h).forEach(s=>allSuppIds.add(s.id)));
