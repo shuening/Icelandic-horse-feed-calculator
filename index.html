@@ -918,7 +918,8 @@ window.deleteHorse=function(i){
 const h=state.horses[i];
 if(!h||h.hidden)return;
 if(getVisibleHorseEntries().length<=1){alert('Keep at least one horse in the calculator.');return;}
-if(!confirm('Delete '+h.name+'? This removes its feed adjustments and supplement settings.'))return;
+const horseName=h.name||'this horse';
+if(!confirm('Delete '+horseName+'?\n\nThis will remove this horse from the app and clear its feed adjustments and supplement settings.\n\nPress OK to delete, or Cancel to keep it.'))return;
 cleanupHorseData(h.id);
 if(isDefaultHorse(h.id))h.hidden=true;
 else state.horses.splice(i,1);
@@ -927,6 +928,7 @@ selectedHorse=next?next.i:0;
 if(!state.horses[trendHorse]||state.horses[trendHorse].hidden)trendHorse=selectedHorse;
 save();
 renderSettings();
+alert(horseName+' has been deleted.');
 };
 window.toggleCondition=function(i,c){
 const h=state.horses[i];
