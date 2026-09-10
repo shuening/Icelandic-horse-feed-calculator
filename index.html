@@ -110,6 +110,12 @@ canvas{width:100%!important;height:100%!important}
 .season-toggle{display:flex;gap:8px;margin-bottom:16px}
 .season-btn{flex:1;padding:10px;border:2px solid var(--border);border-radius:8px;text-align:center;cursor:pointer;font-size:13px;font-weight:600;background:var(--card);transition:.2s}
 .season-btn.active{border-color:var(--accent);background:var(--accent);color:#fff}
+.option-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-top:8px}
+.option-btn{padding:10px;border:2px solid var(--border);border-radius:8px;background:var(--card);cursor:pointer;transition:.2s;text-align:left}
+.option-btn.active{border-color:var(--accent);background:#e6f3f0}
+.option-btn .label{font-size:13px;font-weight:700;color:var(--text)}
+.option-btn.active .label{color:var(--accent)}
+.option-btn .desc{font-size:11px;color:var(--text-light);margin-top:2px}
 .horse-settings-card{margin-bottom:16px}
 .condition-chip{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:12px;border:1px solid var(--border);background:var(--bg);cursor:pointer;transition:.15s}
 .condition-chip.active{background:var(--primary);color:#fff;border-color:var(--primary)}
@@ -183,6 +189,8 @@ if(remote.adjustments)state.adjustments=remote.adjustments;
 if(remote.supplements)state.supplements=remote.supplements;
 if(remote.horses)state.horses=remote.horses;
 if(remote.season)state.season=remote.season;
+if(remote.pastureMode)state.pastureMode=remote.pastureMode;
+if(remote.winterForage)state.winterForage=remote.winterForage;
 state._ts=remoteTs;
 localStorage.setItem('hfc_state',JSON.stringify(state));
 render();
@@ -204,6 +212,8 @@ horses:state.horses,
 adjustments:state.adjustments||{},
 supplements:state.supplements||{},
 season:state.season,
+pastureMode:state.pastureMode||'short',
+winterForage:state.winterForage||'teff_pellets',
 _ts:state._ts
 }).then(()=>{syncPaused=false}).catch(()=>{syncPaused=false});
 }
@@ -227,7 +237,9 @@ return a+'-'+b+'-'+Math.floor(Math.random()*9000+1000);
 const FEED_TYPES=[
 {id:'pasture',name:'Short-Grazed Pasture',unit:'risk',isPasture:true},
 {id:'lmf_low_nsc_complete',name:'LMF Low NSC Complete',unit:'lb',horseIds:['tenor']},
-{id:'teff_pellets',name:'Teff Grass Pellets',unit:'lb'}
+{id:'teff_pellets',name:'Teff Grass Pellets',unit:'lb'},
+{id:'grass_hay',name:'Grass Hay',unit:'lb'},
+{id:'alfalfa_forage',name:'Alfalfa Hay/Pellets',unit:'lb'}
 ];
 
 const ALL_CONDITIONS=['senior','teeth','digestive','pssm','hoof','ir','overweight','healthy'];
@@ -267,6 +279,18 @@ const DEFAULT_HORSES=[
 ];
 
 const ACTIVITIES=[{id:'light',label:'Light'},{id:'moderate',label:'Moderate (~1hr/day)'},{id:'heavy',label:'Heavy'}];
+const PASTURE_MODES=[
+{id:'short',label:'Short Grass',desc:'High risk; do not count'},
+{id:'dry_lot',label:'Dry Lot',desc:'No pasture credit'},
+{id:'managed',label:'Managed Pasture',desc:'Small forage credit'},
+{id:'tested',label:'Tested Low-NSC',desc:'Counts as forage'}
+];
+const WINTER_FORAGES=[
+{id:'teff_pellets',label:'Teff Pellets'},
+{id:'grass_hay',label:'Grass Hay'},
+{id:'alfalfa_forage',label:'Alfalfa'},
+{id:'none',label:'None'}
+];
 
 // ── State ──
 let state=loadState();
@@ -299,6 +323,8 @@ function defaultState(){
 return{
 horses:JSON.parse(JSON.stringify(DEFAULT_HORSES)),
 season:getAutoSeason(),
+pastureMode:'short',
+winterForage:'teff_pellets',
 feeds:{},supplements:{},adjustments:{}
 };
 }
@@ -313,6 +339,8 @@ if(!s.horses.some(h=>h.id===def.id))s.horses.push(JSON.parse(JSON.stringify(def)
 });
 if(!s.adjustments)s.adjustments={};
 if(!s.supplements)s.supplements={};
+if(!s.pastureMode)s.pastureMode='short';
+if(!s.winterForage)s.winterForage='teff_pellets';
 return s;
 }
 function loadState(){
@@ -339,6 +367,30 @@ if(hasIR||hasOW)return[w*0.012,w*0.015];
 return[w*0.015,w*0.018];
 }
 
+function getPasturePlan(h){
+const mode=state.pastureMode||'short';
+const hasIR=h.conditions.includes('ir');
+const hasOW=h.conditions.includes('overweight');
+const hasTeeth=h.conditions.includes('teeth');
+if(mode==='dry_lot')return{label:'Dry Lot / No Pasture',badge:'No Pasture',credit:0,note:'🚜 Dry lot/no pasture: no pasture is counted toward daily forage.'};
+if(mode==='managed'){
+const credit=(hasIR||hasOW||hasTeeth)?0:2;
+return{label:'Managed Pasture',badge:credit?'Light Credit':'Restricted',credit,note:credit?'🌿 Managed pasture adds a small rough forage credit. Set hay/pellets to 0 if the horse is already getting enough fiber.':'🚨 Managed pasture is not counted for IR/overweight or teeth-problem horses unless the plan is reviewed.'};
+}
+if(mode==='tested'){
+const credit=hasTeeth?0:(hasIR||hasOW)?1:3;
+return{label:'Tested Low-NSC Pasture',badge:credit?credit.toFixed(1)+' lb est.':'Not Counted',credit,note:credit?'✅ Tested low-NSC pasture is counted as a modest forage credit. Keep lab results current when grass changes.':'✅ Pasture is tested low-NSC, but this horse still needs a reviewed plan before pasture is counted.'};
+}
+return{label:'Short-Grazed Pasture',badge:'High Risk / Do Not Count',credit:0,note:'🌿 Pasture is currently short-grazed. In the Pacific Northwest, short regrowth and stem bases can be sugar-rich, so pasture is not counted as safe forage.'};
+}
+
+function selectedForageId(h){
+const choice=state.winterForage||'teff_pellets';
+if(choice==='none')return null;
+if((h.conditions.includes('ir')||h.conditions.includes('overweight'))&&choice==='alfalfa_forage')return 'teff_pellets';
+return choice;
+}
+
 function recommend(h){
 const[lo,hi]=getTargetRange(h);
 const mid=(lo+hi)/2;
@@ -346,10 +398,11 @@ const c=h.conditions;
 const hasPSSM=c.includes('pssm');const hasTeeth=c.includes('teeth');
 const hasIR=c.includes('ir');const hasOW=c.includes('overweight');
 const hasDig=c.includes('digestive');const isSenior=c.includes('senior');
+const pasture=getPasturePlan(h);
 
-let r={pasture:false,lmf_low_nsc_complete:0,teff_pellets:0};
+let r={pasture:pasture.credit,lmf_low_nsc_complete:0,teff_pellets:0,grass_hay:0,alfalfa_forage:0};
 let notes=[];
-notes.push('🌿 Pasture is currently short-grazed. In the Pacific Northwest, short regrowth and stem bases can be sugar-rich, so pasture is not counted as safe forage.');
+notes.push(pasture.note);
 
 // Tenor-like: senior+teeth+pssm
 if(isSenior&&hasTeeth&&hasPSSM){
@@ -363,17 +416,23 @@ if(c.includes('hoof'))notes.push('🐴 Hoof/metabolic support: watch total miner
 // IR/overweight (Spoi-like)
 else if(hasIR||hasOW){
 const target=lo+(hi-lo)*0.3; // lean toward lower end
-r.teff_pellets=+target.toFixed(1);
+const forageId=selectedForageId(h);
+const forageAmt=Math.max(0,target-pasture.credit);
+if(forageId)r[forageId]=+forageAmt.toFixed(1);
 notes.push('🚨 PASTURE WARNING: IR/overweight horses should stay off short pasture by default. If turnout is necessary, use a dry lot/track setup, grazing muzzle, or very limited early-morning access.');
-notes.push('💧 Teff pellets are a lower-sugar forage-pellet option, but hay/feed testing is still the reliable way to confirm NSC.');
+if((state.winterForage||'teff_pellets')==='alfalfa_forage')notes.push('⚠️ Alfalfa is not auto-selected for IR/overweight horses. Teff pellets are used as the safer default forage option.');
+else if(forageId)notes.push('💧 '+FEED_TYPES.find(f=>f.id===forageId).name+' is shown as the winter fiber source. Testing is still the reliable way to confirm NSC.');
 if(hasOW)notes.push('⚖️ Target lower end of range for weight management');
 if(h.idealWeight)notes.push('🎯 Current: '+h.weight+' lb → Ideal: '+h.idealWeight+' lb (target '+Math.round((h.weight-h.idealWeight)/h.weight*100)+'% weight loss)');
 notes.push('💊 Remission adds magnesium/biotin/chromium support; review overlap with AminoTrace+ before increasing dose.');
 }
 // Healthy visible horses (Uffie-like)
 else{
-r.teff_pellets=+mid.toFixed(1);
-notes.push('🥣 Teff pellets are shown as the current low-sugar pellet/carry option. Add long-stem forage separately if available and tested.');
+const forageId=selectedForageId(h);
+const forageAmt=Math.max(0,mid-pasture.credit);
+if(forageId)r[forageId]=+forageAmt.toFixed(1);
+if(forageId)notes.push('🥣 '+FEED_TYPES.find(f=>f.id===forageId).name+' is shown as the winter fiber source. Set it to 0 if this horse does not need extra forage.');
+else notes.push('🥣 No winter fiber source selected. Add hay/pellets manually if pasture is not enough.');
 }
 if(hasDig&&!notes.some(n=>n.includes('meals')))notes.push('💚 Digestive sensitive: consider splitting meals');
 
@@ -395,7 +454,7 @@ delete state.adjustments[horseId+'_'+feedId];save();
 }
 
 function getFeedTotal(h,rec){
-let total=0;
+let total=rec.feeds.pasture||0;
 FEED_TYPES.forEach(f=>{
 if(f.isPasture)return;
 if(!feedAppliesToHorse(f,h))return;
@@ -535,10 +594,12 @@ html+='</div>';
 html+='<div class="card"><h3>🥕 Feeding Recommendation</h3>';
 FEED_TYPES.forEach(f=>{
 if(f.isPasture){
+const pasture=getPasturePlan(h);
+const badgeClass=pasture.credit?'badge-healthy':'badge-overweight';
 html+=`<div class="pasture-toggle">
 <span style="font-size:20px">🌿</span>
-<span style="flex:1;font-size:13px;font-weight:600">Short-Grazed Pasture</span>
-<span class="badge badge-overweight">High Risk / Do Not Count</span>
+<span style="flex:1;font-size:13px;font-weight:600">${escHtml(pasture.label)}</span>
+<span class="badge ${badgeClass}">${escHtml(pasture.badge)}</span>
 </div>`;
 return;
 }
@@ -546,6 +607,7 @@ if(!feedAppliesToHorse(f,h))return;
 const recVal=rec.feeds[f.id]||0;
 const adj=getAdjusted(h.id,f.id);
 const val=adj!==null?adj:recVal;
+if(recVal<=0&&adj===null)return;
 const isAdj=adj!==null&&Math.abs(adj-recVal)>0.05;
 html+=`<div class="feed-row">
 <div class="feed-name">${f.name}${isAdj?`<small>Rec: ${recVal.toFixed(1)} lb</small>`:''}</div>
@@ -653,19 +715,28 @@ let grandTotals={};
 FEED_TYPES.forEach(f=>{
 if(f.isPasture){
 html+='<tr><td>🌿 Pasture</td>';
-visibleHorses.forEach(h=>{html+=`<td>High risk</td>`});
-html+='<td></td></tr>';return;
-}
-html+=`<tr><td>${f.name}</td>`;
 let rowTotal=0;
 visibleHorses.forEach(h=>{
-if(!feedAppliesToHorse(f,h)){html+='<td>—</td>';return;}
+const rec=recommend(h);
+const val=rec.feeds.pasture||0;
+rowTotal+=val;
+html+=`<td>${val?val.toFixed(1)+' est.':escHtml(getPasturePlan(h).badge)}</td>`;
+});
+grandTotals.pasture=rowTotal;
+html+=`<td><strong>${rowTotal?rowTotal.toFixed(1):''}</strong></td></tr>`;return;
+}
+let rowTotal=0;
+let cells='';
+visibleHorses.forEach(h=>{
+if(!feedAppliesToHorse(f,h)){cells+='<td>—</td>';return;}
 const rec=recommend(h);
 const adj=getAdjusted(h.id,f.id);
 const val=adj!==null?adj:(rec.feeds[f.id]||0);
 rowTotal+=val;
-html+=`<td>${val.toFixed(1)}</td>`;
+cells+=`<td>${val.toFixed(1)}</td>`;
 });
+if(rowTotal<=0)return;
+html+=`<tr><td>${f.name}</td>${cells}`;
 grandTotals[f.id]=rowTotal;
 html+=`<td><strong>${rowTotal.toFixed(1)}</strong></td></tr>`;
 });
@@ -862,6 +933,18 @@ html+=`<div class="season-btn${state.season===s?' active':''}" onclick="setSeaso
 });
 html+='</div><div style="font-size:12px;color:var(--text-light)">Season is informational; short-grazed pasture is treated as high-risk and is not counted as feed.</div></div>';
 
+html+='<div class="card"><h3>🌱 Pasture</h3><div class="option-grid">';
+PASTURE_MODES.forEach(m=>{
+html+=`<button class="option-btn${(state.pastureMode||'short')===m.id?' active':''}" onclick="setPastureMode('${m.id}')"><div class="label">${m.label}</div><div class="desc">${m.desc}</div></button>`;
+});
+html+='</div><div style="font-size:12px;color:var(--text-light);margin-top:8px">Pick the closest barn condition. IR/overweight horses stay conservative unless pasture is tested.</div></div>';
+
+html+='<div class="card"><h3>🌾 Winter Fiber</h3><div class="option-grid">';
+WINTER_FORAGES.forEach(f=>{
+html+=`<button class="option-btn${(state.winterForage||'teff_pellets')===f.id?' active':''}" onclick="setWinterForage('${f.id}')"><div class="label">${f.label}</div></button>`;
+});
+html+='</div><div style="font-size:12px;color:var(--text-light);margin-top:8px">Used to fill forage gaps when pasture is limited. Feed amounts can still be set to 0.</div></div>';
+
 html+='<div class="card"><button class="btn btn-accent btn-block" onclick="addHorse()">＋ Add Horse</button><div style="font-size:12px;color:var(--text-light);margin-top:8px">New horses start at 800 lb with Healthy condition and Moderate activity.</div></div>';
 
 const visibleHorseEntries=getVisibleHorseEntries();
@@ -905,6 +988,8 @@ html+='<div class="card"><button class="btn btn-danger btn-block" onclick="reset
 el.innerHTML=html;
 }
 window.setSeason=function(s){state.season=s;save();renderSettings()};
+window.setPastureMode=function(mode){state.pastureMode=mode;save();renderSettings()};
+window.setWinterForage=function(forage){state.winterForage=forage;save();renderSettings()};
 window.addHorse=function(){
 const horse={id:createHorseId(),name:'New Horse',weight:800,conditions:['healthy'],activity:'moderate',emoji:'🐴'};
 state.horses.push(horse);
