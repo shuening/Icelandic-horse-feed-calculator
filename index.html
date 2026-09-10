@@ -223,14 +223,9 @@ return a+'-'+b+'-'+Math.floor(Math.random()*9000+1000);
 
 // ── Data Defaults ──
 const FEED_TYPES=[
-{id:'pasture',name:'Free Roaming Pasture',unit:'est.',isPasture:true},
-{id:'timothy_hay',name:'Timothy Hay (dry)',unit:'lb'},
-{id:'alfalfa_hay',name:'Alfalfa Hay (dry)',unit:'lb'},
-{id:'soaked_timothy',name:'Soaked Timothy Cubes',unit:'lb'},
-{id:'soaked_teff',name:'Soaked Teff Cubes',unit:'lb'},
-{id:'soaked_alfalfa',name:'Soaked Alfalfa Cubes',unit:'lb'},
-{id:'special_pellets',name:'Haystack Special Blend Pellets',unit:'lb'},
-{id:'soaked_beet',name:'Soaked Beet Pulps',unit:'lb'}
+{id:'pasture',name:'Short-Grazed Pasture',unit:'risk',isPasture:true},
+{id:'lmf_low_nsc_complete',name:'LMF Low NSC Complete',unit:'lb',horseIds:['tenor']},
+{id:'teff_pellets',name:'Teff Grass Pellets',unit:'lb'}
 ];
 
 const ALL_CONDITIONS=['senior','teeth','digestive','pssm','hoof','ir','overweight','healthy'];
@@ -238,32 +233,25 @@ const CONDITION_LABELS={senior:'Senior',teeth:'Teeth Problem',digestive:'Digesti
 const CONDITION_BADGE={senior:'badge-senior',teeth:'badge-teeth',digestive:'badge-digestive',pssm:'badge-pssm',hoof:'badge-hoof',ir:'badge-ir',overweight:'badge-overweight',healthy:'badge-healthy'};
 
 const ALL_SUPPS=[
-{id:'balanced_gold',name:'Triple Crown Balanced Gold',desc:'Ration balancer (general use)',dose:4,unit:'oz',forAll:false,mfgDose:'1–1.5 lb/day',mfgNote:'App dose 4 oz is well below mfg 1–1.5 lb/day — used as partial ration balancer, not sole source'},
-{id:'amino_trace',name:'Amino Trace+',desc:'Trace minerals + amino acids (metabolic/hoof)',dose:2,unit:'oz',forAll:false,primary:true,mfgDose:'100g (~3.5 oz) for 700 lb horse',mfgNote:'App dose 2 oz is below mfg 3.5 oz — adequate when combined with forage minerals'},
-{id:'daily_red',name:'Daily Red Fortified',desc:'Vitamin/mineral (salt-based)',dose:2,unit:'oz',forAll:false},
-{id:'digest_911',name:'Digest 911',desc:'Digestive support',dose:1,unit:'oz',forAll:false},
-{id:'turmeric',name:'Turmeric for Horse',desc:'Anti-inflammatory',dose:1,unit:'tbsp',forAll:true},
-{id:'super_sport',name:'Purina Super Sport',desc:'Amino acids for muscle support',dose:4,unit:'oz',mfgDose:'6 oz for 750 lb horse',mfgNote:'App dose 4 oz is below mfg 6 oz — reduced to limit Se overlap with other supps'},
-{id:'gut_gold',name:'Assured Gut Gold',desc:'Gut health & microbiome',dose:1,unit:'oz'},
-{id:'weight_accel',name:'Senior Weight Accelerator',desc:'Calorie-dense weight support',dose:8,unit:'oz'},
-{id:'vit_e',name:'Health-E Max Vitamin E',desc:'Antioxidant & neuromuscular support',dose:1,unit:'scoop',mfgDose:'1 scoop (maintenance)',mfgNote:'Use half scoop when combined with AminoTrace+ (already provides ~570 IU Vit E)'},
-{id:'fat_oil',name:'Vegetable/Rice Bran Oil',desc:'Fat energy source (replaces starch calories)',dose:2,unit:'tbsp'},
-{id:'magnesium',name:'Magnesium Oxide',desc:'Supports insulin sensitivity & muscle function',dose:10,unit:'g'}
+{id:'amino_trace',name:'Mad Barn AminoTrace+',desc:'Low-NSC vitamin/mineral + amino acid balancer; no added iron',dose:3.5,unit:'oz',forAll:true,primary:true,mfgDose:'100 g (~3.5 oz) for 700 lb; 150 g for 900 lb',mfgNote:'Primary mineral base. Avoid stacking with other complete mineral bases without ration review.'},
+{id:'health_e',name:'Health-E Vitamin E',desc:'High-potency vitamin E antioxidant support',dose:0.5,unit:'scoop',mfgDose:'Label is product-specific; app defaults low when combined with AminoTrace+',mfgNote:'Check actual IU per scoop/oz on your container; reduce if total Vitamin E target is already met.'},
+{id:'assure_guard_gold',name:'AssureGuard Gold',desc:'Digestive support with psyllium, probiotics, enzymes, and buffering ingredients',dose:1,unit:'scoop',horseIds:['tenor'],mfgDose:'Ponies 501–800 lb: 1 scoop/day',mfgNote:'Tenor only in this plan. Do not duplicate with another daily gut product unless intended.'},
+{id:'optimum_digestive',name:'Mad Barn Optimum Digestive Health',desc:'Prebiotic/probiotic hindgut support; alternative to AssureGuard Gold',dose:80,unit:'g',mfgDose:'80 g/day for 440–1100 lb',mfgNote:'Alternative gut support option; overlaps with AssureGuard Gold.'},
+{id:'tumercicle',name:'Turmericle',desc:'Turmeric/curcumin botanical comfort support',dose:1,unit:'scoop',mfgDose:'Often 1 scoop for 500 lb; 2 scoops for 1000 lb',mfgNote:'Botanical comfort support; check label and competition medication rules.'},
+{id:'super_sport',name:'Purina SuperSport',desc:'Amino acids for muscle support',dose:4,unit:'oz',mfgDose:'6 oz for 750 lb horse',mfgNote:'App dose is below label for 750 lb; reduced to limit overlap with other fortified products.'},
+{id:'buteless',name:'Bute-Less',desc:'Comfort/recovery support; formula varies by product version',dose:1,unit:'scoop',mfgNote:'Check whether your container is original Bute-Less or Bute-Less Performance; active botanicals differ.'},
+{id:'remission',name:'AniMed Remission',desc:'Hoof/metabolic support with magnesium, biotin, amino acids, chromium, and probiotics',dose:1,unit:'oz',mfgDose:'1 oz/day per 1000 lb; 0.5 oz maintenance',mfgNote:'Adds magnesium, zinc, biotin, chromium, and a small selenium contribution; review overlap with AminoTrace+.'}
 ];
 
 // Condition → supplement recommendation rules
 // Each rule: {suppId, conditions (any match triggers), reason}
 const SUPP_RULES=[
-{suppId:'digest_911',conditions:['digestive'],reason:'Digestive sensitive → gut support'},
-{suppId:'gut_gold',conditions:['digestive'],reason:'Digestive sensitive → microbiome support'},
 {suppId:'super_sport',conditions:['pssm'],reason:'PSSM → amino acids for muscle maintenance'},
-{suppId:'vit_e',conditions:['pssm'],reason:'PSSM → critical antioxidant for neuromuscular health'},
-{suppId:'weight_accel',conditions:['senior'],reason:'Senior → calorie-dense support for weight maintenance'},
-{suppId:'turmeric',conditions:['hoof','senior','pssm'],reason:'Anti-inflammatory support'},
-{suppId:'amino_trace',conditions:['pssm','hoof','ir'],reason:'Metabolic/hoof → enhanced Cu, Zn, Mg for metabolic & hoof support'},
-{suppId:'balanced_gold',conditions:['healthy'],reason:'Healthy horse → general ration balancer'},
-{suppId:'fat_oil',conditions:['pssm'],reason:'PSSM → fat calories replace starch (vet recommended)'},
-{suppId:'magnesium',conditions:['ir'],reason:'IR → supports insulin sensitivity (Dr. Kellon protocol)'},
+{suppId:'health_e',conditions:['pssm'],reason:'PSSM → vitamin E antioxidant support to review'},
+{suppId:'assure_guard_gold',conditions:['senior','teeth','digestive'],reason:'Tenor digestive/teeth support → gut support'},
+{suppId:'optimum_digestive',conditions:['digestive'],reason:'Digestive sensitive → alternative hindgut support'},
+{suppId:'tumercicle',conditions:['hoof','senior','pssm'],reason:'Comfort/inflammatory support'},
+{suppId:'remission',conditions:['hoof','ir','overweight'],reason:'Hoof/metabolic support'},
 ];
 // Backward compat helpers
 const BASE_SUPPS=ALL_SUPPS.filter(s=>s.forAll);
@@ -271,7 +259,7 @@ const TENOR_SUPPS=ALL_SUPPS.filter(s=>!s.forAll);
 
 const DEFAULT_HORSES=[
 {id:'tenor',name:'Tenor',weight:700,conditions:['senior','teeth','digestive','pssm','hoof'],activity:'moderate',emoji:'🐎'},
-{id:'odinn',name:'Odinn',weight:700,conditions:['healthy'],activity:'moderate',emoji:'🏇'},
+{id:'odinn',name:'Odinn',weight:700,conditions:['healthy'],activity:'moderate',emoji:'🏇',hidden:true},
 {id:'uffie',name:'Uffie',weight:800,conditions:['healthy'],activity:'moderate',emoji:'🐴'},
 {id:'spoi',name:'Spoi',weight:950,idealWeight:800,conditions:['ir','overweight'],activity:'moderate',emoji:'🐎'}
 ];
@@ -312,12 +300,25 @@ season:getAutoSeason(),
 feeds:{},supplements:{},adjustments:{}
 };
 }
+function normalizeState(s){
+if(!s.horses)s.horses=JSON.parse(JSON.stringify(DEFAULT_HORSES));
+s.horses.forEach(h=>{
+const def=DEFAULT_HORSES.find(d=>d.id===h.id);
+if(def&&def.hidden!==undefined)h.hidden=def.hidden;
+});
+DEFAULT_HORSES.forEach(def=>{
+if(!s.horses.some(h=>h.id===def.id))s.horses.push(JSON.parse(JSON.stringify(def)));
+});
+if(!s.adjustments)s.adjustments={};
+if(!s.supplements)s.supplements={};
+return s;
+}
 function loadState(){
 try{const s=localStorage.getItem('hfc_state');if(s){
 const parsed=JSON.parse(s);
 // Auto-update season on each load
 parsed.season=getAutoSeason();
-return parsed;
+return normalizeState(parsed);
 }}catch(e){}
 return defaultState();
 }
@@ -339,65 +340,38 @@ return[w*0.015,w*0.018];
 function recommend(h){
 const[lo,hi]=getTargetRange(h);
 const mid=(lo+hi)/2;
-const isSummer=state.season==='summer';
 const c=h.conditions;
 const hasPSSM=c.includes('pssm');const hasTeeth=c.includes('teeth');
 const hasIR=c.includes('ir');const hasOW=c.includes('overweight');
 const hasDig=c.includes('digestive');const isSenior=c.includes('senior');
 
-let r={pasture:false,timothy_hay:0,alfalfa_hay:0,soaked_timothy:0,soaked_teff:0,soaked_alfalfa:0,special_pellets:0,soaked_beet:0};
+let r={pasture:false,lmf_low_nsc_complete:0,teff_pellets:0};
 let notes=[];
+notes.push('🌿 Pasture is currently short-grazed. In the Pacific Northwest, short regrowth and stem bases can be sugar-rich, so pasture is not counted as safe forage.');
 
 // Tenor-like: senior+teeth+pssm
 if(isSenior&&hasTeeth&&hasPSSM){
-r.pasture=isSummer;
-const pastureEst=isSummer?2:0;
-// Vet guideline: teeth problems → >70% soaked feeds, minimal dry hay
-const dryHay=Math.min(2,mid*0.15);
-r.timothy_hay=+(dryHay*0.75).toFixed(1);
-r.alfalfa_hay=+(dryHay*0.25).toFixed(1);
-const remaining=mid-pastureEst-dryHay;
-r.soaked_timothy=+(remaining*0.50).toFixed(1);
-r.soaked_alfalfa=+(remaining*0.20).toFixed(1);
-r.soaked_beet=+(remaining*0.20).toFixed(1);
-r.soaked_beet=Math.max(1,Math.min(2.5,r.soaked_beet));
-r.special_pellets=+(remaining*0.10).toFixed(1);
-notes.push('⚠️ PSSM: Keep starch/sugar low (<12% NSC). Add fat for energy (oil/rice bran)');
-notes.push('🦷 Teeth: ~80% soaked feeds — dry hay kept minimal per vet recommendation');
+// LMF Low NSC Complete can serve as a complete low-sugar soaked mash for Tenor.
+r.lmf_low_nsc_complete=+mid.toFixed(1);
+notes.push('⚠️ PSSM: Keep starch/sugar low. LMF Low NSC Complete is listed by LMF as max 6% sugar and max 2% starch.');
+notes.push('🦷 Teeth: feed as a well-soaked mash; keep long-stem hay/pasture intake conservative if chewing is unreliable.');
 notes.push('🍽️ Split into 3-4 smaller meals throughout the day');
-notes.push('🛢️ PSSM fat supplement: add ¼–½ cup vegetable or rice bran oil daily');
-if(c.includes('hoof'))notes.push('🐴 Monitor hoof condition — biotin supplementation recommended');
+if(c.includes('hoof'))notes.push('🐴 Hoof/metabolic support: watch total minerals when combining AminoTrace+ and Remission.');
 }
 // IR/overweight (Spoi-like)
 else if(hasIR||hasOW){
-// IR horses: restrict pasture severely (grazing muzzle or limited time)
-r.pasture=false; // default off — must be manually enabled with caution
-const pastureEst=0;
 const target=lo+(hi-lo)*0.3; // lean toward lower end
-const hayAmt=target-pastureEst;
-r.timothy_hay=+(hayAmt*0.6).toFixed(1);
-r.soaked_teff=+(hayAmt*0.25).toFixed(1);
-r.soaked_beet=+Math.min(1,(hayAmt*0.1)).toFixed(1);
-r.alfalfa_hay=0;// avoid for IR
-r.special_pellets=0;
-notes.push('🚫 Avoid or minimize alfalfa (high sugar risk for IR)');
-notes.push('💧 Soak hay 30-60 min to reduce sugar content (can cut sugar up to 50%)');
-notes.push('🚨 PASTURE WARNING: IR/overweight horses must have restricted grazing — use a grazing muzzle (reduces intake ~80%) or limit to early morning only. Avoid afternoon pasture when fructan levels peak.');
+r.teff_pellets=+target.toFixed(1);
+notes.push('🚨 PASTURE WARNING: IR/overweight horses should stay off short pasture by default. If turnout is necessary, use a dry lot/track setup, grazing muzzle, or very limited early-morning access.');
+notes.push('💧 Teff pellets are a lower-sugar forage-pellet option, but hay/feed testing is still the reliable way to confirm NSC.');
 if(hasOW)notes.push('⚖️ Target lower end of range for weight management');
 if(h.idealWeight)notes.push('🎯 Current: '+h.weight+' lb → Ideal: '+h.idealWeight+' lb (target '+Math.round((h.weight-h.idealWeight)/h.weight*100)+'% weight loss)');
-notes.push('💊 Consider Magnesium supplementation to improve insulin sensitivity');
+notes.push('💊 Remission adds magnesium/biotin/chromium support; review overlap with AminoTrace+ before increasing dose.');
 }
-// Healthy horses (Odinn/Uffie-like)
+// Healthy visible horses (Uffie-like)
 else{
-r.pasture=isSummer;
-const pastureEst=isSummer?3:0;
-const remaining=mid-pastureEst;
-if(remaining>0){
-r.timothy_hay=+(remaining*0.65).toFixed(1);
-r.alfalfa_hay=+(remaining*0.15).toFixed(1);
-r.special_pellets=+Math.min(2,(remaining*0.12)).toFixed(1);
-r.soaked_beet=+Math.min(1,(remaining*0.08)).toFixed(1);
-}
+r.teff_pellets=+mid.toFixed(1);
+notes.push('🥣 Teff pellets are shown as the current low-sugar pellet/carry option. Add long-stem forage separately if available and tested.');
 }
 if(hasDig&&!notes.some(n=>n.includes('meals')))notes.push('💚 Digestive sensitive: consider splitting meals');
 
@@ -422,31 +396,31 @@ function getFeedTotal(h,rec){
 let total=0;
 FEED_TYPES.forEach(f=>{
 if(f.isPasture)return;
+if(!feedAppliesToHorse(f,h))return;
 const adj=getAdjusted(h.id,f.id);
 total+=(adj!==null?adj:rec.feeds[f.id])||0;
 });
-if(rec.feeds.pasture&&state.season==='summer')total+=(state.season==='summer'?3:0);// estimate
 return total;
 }
 
 // ── Supplements ──
 // Interaction warnings between supplements
 const SUPP_INTERACTIONS=[
-{supps:['amino_trace','daily_red'],severity:'warning',
-message:'⚠️ Amino Trace+ and Daily Red Fortified overlap significantly in zinc, copper, manganese, selenium, iodine, and vitamins A/D/E. Combining both may result in excessive selenium (~3 mg, 4.6× daily req) and iodine (~7.7 mg, 3.5× daily req). Consider using only one, or reduce Daily Red to 1 oz.'},
-{supps:['amino_trace','balanced_gold'],severity:'warning',
-message:'⚠️ AminoTrace+ and Balancer Gold are BOTH complete vitamin/mineral supplements — using together doubles Zinc (~250 mg, 1.25× NRC), Copper (~65 mg, 1.3× NRC), and Selenium (~1.26 mg, near upper limit). Choose ONE based on condition: AminoTrace+ for metabolic/PSSM/hoof horses, Balancer Gold for healthy horses.'},
-{supps:['amino_trace','vit_e'],severity:'info',
-message:'💡 AminoTrace+ already provides ~570 IU Vitamin E. When combined with Health-E Max (~8,200 IU/scoop), total reaches ~8,800 IU. For PSSM target of 1,000–5,000 IU, consider using half scoop of Health-E Max (~4,100 IU → total ~4,700 IU).'},
+{supps:['amino_trace','health_e'],severity:'info',
+message:'💡 AminoTrace+ already contributes vitamin E. When adding Health-E, check the actual IU per scoop/oz and keep the total target vet-reviewed, especially for PSSM.'},
 {supps:['amino_trace','super_sport'],severity:'info',
-message:'💡 Both AminoTrace+ and Super Sport contain selenium. Combined Se at app doses: ~0.93 mg (within safe range). Do not exceed listed doses.'},
-{supps:['balanced_gold','daily_red'],severity:'warning',
-message:'⚠️ Balancer Gold + Daily Red Fortified: overlapping minerals (Zn, Cu, Se, vitamins A/D/E). Use one or the other, not both.'}
+message:'💡 Both AminoTrace+ and SuperSport are fortified products. Keep doses conservative and review selenium/mineral totals before increasing either.'},
+{supps:['amino_trace','remission'],severity:'warning',
+message:'⚠️ AminoTrace+ + Remission overlap in mineral/metabolic support. Remission adds magnesium, zinc, biotin, chromium, and selenium traces; review the full ration before increasing doses.'},
+{supps:['assure_guard_gold','optimum_digestive'],severity:'warning',
+message:'⚠️ AssureGuard Gold and Optimum Digestive Health both target gut support with probiotic/prebiotic overlap. Use one daily gut product unless your vet/nutritionist intends both.'},
+{supps:['tumercicle','buteless'],severity:'warning',
+message:'⚠️ Turmericle + Bute-Less can duplicate botanical comfort/inflammatory support. Check product labels, competition rules, and vet guidance before stacking.'}
 ];
 
 function getSuppsForHorse(h){
 const c=h.conditions;
-return ALL_SUPPS.map(s=>{
+return ALL_SUPPS.filter(s=>!s.horseIds||s.horseIds.includes(h.id)).map(s=>{
 let recommended=!!s.forAll; // base supps always recommended
 let reasons=[];
 // Check condition-based rules
@@ -456,19 +430,13 @@ recommended=true;
 reasons.push(rule.reason);
 }
 });
-// IR/overweight: reduce calorie-dense supps
-if(s.id==='weight_accel'&&(c.includes('ir')||c.includes('overweight'))){
+if(s.id==='optimum_digestive'&&h.id==='tenor'){
 recommended=false;
-reasons=['⚠️ Not recommended for IR/overweight — calorie-dense'];
+reasons=['Alternative to AssureGuard Gold — avoid duplicate daily gut products'];
 }
-// Mutual exclusion: BG ↔ AT+ (don't recommend both)
-if(s.id==='balanced_gold'&&(c.includes('pssm')||c.includes('ir')||c.includes('hoof'))){
+if(s.id==='buteless'){
 recommended=false;
-reasons=['Use AminoTrace+ instead — designed for metabolic/hoof conditions'];
-}
-if(s.id==='amino_trace'&&!c.includes('pssm')&&!c.includes('ir')&&!c.includes('hoof')&&c.includes('healthy')){
-recommended=false;
-reasons=['Use Balancer Gold instead — sufficient for healthy horses'];
+reasons=['Use only when comfort/recovery support is intended; check label and medication rules'];
 }
 return{...s,recommended,reasons};
 });
@@ -497,15 +465,32 @@ function render(){
 ({recs:renderRecs,supps:renderSupps,summary:renderSummary,logs:renderLogs,trends:renderTrends,settings:renderSettings})[selectedTab]();
 }
 
+// ── Render Helpers ──
+function getVisibleHorseEntries(){
+return state.horses.map((h,i)=>({h,i})).filter(({h})=>!h.hidden);
+}
+function getVisibleHorses(){
+return getVisibleHorseEntries().map(({h})=>h);
+}
+function ensureVisibleHorseSelected(){
+if(state.horses[selectedHorse]&&!state.horses[selectedHorse].hidden)return;
+const first=getVisibleHorseEntries()[0];
+selectedHorse=first?first.i:0;
+}
+function feedAppliesToHorse(feed,h){
+return !feed.horseIds||feed.horseIds.includes(h.id);
+}
+
 // ── Render: Horse Tabs (reusable) ──
 function horseTabs(sel,onChange){
-return '<div class="horse-tabs">'+state.horses.map((h,i)=>
+return '<div class="horse-tabs">'+getVisibleHorseEntries().map(({h,i})=>
 `<div class="horse-tab${i===sel?' active':''}" data-idx="${i}">${h.emoji} ${h.name}</div>`
 ).join('')+'</div>';
 }
 
 // ── Render: Recommendations ──
 function renderRecs(){
+ensureVisibleHorseSelected();
 const el=document.getElementById('page-recs');
 const h=state.horses[selectedHorse];
 if(!h){el.innerHTML='<div class="empty-state"><div class="icon">🐴</div>No horses configured</div>';return;}
@@ -533,11 +518,12 @@ FEED_TYPES.forEach(f=>{
 if(f.isPasture){
 html+=`<div class="pasture-toggle">
 <span style="font-size:20px">🌿</span>
-<span style="flex:1;font-size:13px;font-weight:600">Free Roaming Pasture</span>
-<span class="badge ${rec.feeds.pasture?'badge-healthy':'badge-overweight'}">${rec.feeds.pasture?'Available ('+state.season+')':'Limited ('+state.season+')'}</span>
+<span style="flex:1;font-size:13px;font-weight:600">Short-Grazed Pasture</span>
+<span class="badge badge-overweight">High Risk / Do Not Count</span>
 </div>`;
 return;
 }
+if(!feedAppliesToHorse(f,h))return;
 const recVal=rec.feeds[f.id]||0;
 const adj=getAdjusted(h.id,f.id);
 const val=adj!==null?adj:recVal;
@@ -585,6 +571,7 @@ save();renderRecs();
 
 // ── Render: Supplements ──
 function renderSupps(){
+ensureVisibleHorseSelected();
 const el=document.getElementById('page-supps');
 const h=state.horses[selectedHorse];
 if(!h){el.innerHTML='';return;}
@@ -638,20 +625,22 @@ window.changeSuppDose=function(hid,sid,dose,active){setSuppState(hid,sid,{active
 // ── Render: Summary ──
 function renderSummary(){
 const el=document.getElementById('page-summary');
+const visibleHorses=getVisibleHorses();
 let html='<div class="card"><h3>📊 Daily Feed Summary</h3>';
 html+='<div style="overflow-x:auto"><table class="summary-table"><tr><th>Feed</th>';
-state.horses.forEach(h=>{html+=`<th>${h.emoji} ${h.name}</th>`});
+visibleHorses.forEach(h=>{html+=`<th>${h.emoji} ${h.name}</th>`});
 html+='<th>Total</th></tr>';
 let grandTotals={};
 FEED_TYPES.forEach(f=>{
 if(f.isPasture){
 html+='<tr><td>🌿 Pasture</td>';
-state.horses.forEach(h=>{const rec=recommend(h);html+=`<td>${rec.feeds.pasture?'✅':'—'}</td>`});
+visibleHorses.forEach(h=>{html+=`<td>High risk</td>`});
 html+='<td></td></tr>';return;
 }
 html+=`<tr><td>${f.name}</td>`;
 let rowTotal=0;
-state.horses.forEach(h=>{
+visibleHorses.forEach(h=>{
+if(!feedAppliesToHorse(f,h)){html+='<td>—</td>';return;}
 const rec=recommend(h);
 const adj=getAdjusted(h.id,f.id);
 const val=adj!==null?adj:(rec.feeds[f.id]||0);
@@ -663,21 +652,21 @@ html+=`<td><strong>${rowTotal.toFixed(1)}</strong></td></tr>`;
 });
 const gt=Object.values(grandTotals).reduce((a,b)=>a+b,0);
 html+=`<tr class="total-row"><td><strong>Total</strong></td>`;
-state.horses.forEach(h=>{const rec=recommend(h);html+=`<td><strong>${getFeedTotal(h,rec).toFixed(1)}</strong></td>`});
+visibleHorses.forEach(h=>{const rec=recommend(h);html+=`<td><strong>${getFeedTotal(h,rec).toFixed(1)}</strong></td>`});
 html+=`<td><strong>${gt.toFixed(1)} lb</strong></td></tr></table></div></div>`;
 
 // Supplements summary
 html+='<div class="card"><h3>💊 Supplement Summary</h3><div style="overflow-x:auto"><table class="summary-table"><tr><th>Supplement</th>';
-state.horses.forEach(h=>{html+=`<th>${h.emoji}</th>`});
+visibleHorses.forEach(h=>{html+=`<th>${h.emoji}</th>`});
 html+='</tr>';
 const allSuppIds=new Set();
-state.horses.forEach(h=>getSuppsForHorse(h).forEach(s=>allSuppIds.add(s.id)));
+visibleHorses.forEach(h=>getSuppsForHorse(h).forEach(s=>allSuppIds.add(s.id)));
 const suppMap={};
 ALL_SUPPS.forEach(s=>suppMap[s.id]=s);
 allSuppIds.forEach(sid=>{
 const s=suppMap[sid];if(!s)return;
 html+=`<tr><td>${s.name}</td>`;
-state.horses.forEach(h=>{
+visibleHorses.forEach(h=>{
 const hSupps=getSuppsForHorse(h);
 const has=hSupps.find(x=>x.id===sid);
 if(!has){html+='<td>—</td>';return;}
@@ -852,9 +841,9 @@ let html='<div class="card"><h3>🌿 Season</h3><div class="season-toggle">';
 ['summer','winter'].forEach(s=>{
 html+=`<div class="season-btn${state.season===s?' active':''}" onclick="setSeason('${s}')">${s==='summer'?'☀️ Summer':'❄️ Winter'}</div>`;
 });
-html+='</div><div style="font-size:12px;color:var(--text-light)">Summer = more pasture available, Winter = more hay needed</div></div>';
+html+='</div><div style="font-size:12px;color:var(--text-light)">Season is informational; short-grazed pasture is treated as high-risk and is not counted as feed.</div></div>';
 
-state.horses.forEach((h,hi)=>{
+getVisibleHorseEntries().forEach(({h,i:hi})=>{
 html+=`<div class="card horse-settings-card"><h3>${h.emoji} ${h.name}</h3>`;
 html+=`<div class="form-group"><label>Name</label><input value="${h.name}" onchange="updateHorse(${hi},'name',this.value)"></div>`;
 html+=`<div class="form-group"><label>Weight (lb)</label><input type="number" value="${h.weight}" onchange="updateHorse(${hi},'weight',+this.value)"></div>`;
