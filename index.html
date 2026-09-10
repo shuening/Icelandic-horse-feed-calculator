@@ -480,11 +480,20 @@ selectedHorse=first?first.i:0;
 function feedAppliesToHorse(feed,h){
 return !feed.horseIds||feed.horseIds.includes(h.id);
 }
+function escHtml(v){
+return String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+function createHorseId(){
+let id;
+do{id='horse_'+Date.now().toString(36)+'_'+Math.floor(Math.random()*1000).toString(36)}
+while(state.horses.some(h=>h.id===id));
+return id;
+}
 
 // ── Render: Horse Tabs (reusable) ──
 function horseTabs(sel,onChange){
 return '<div class="horse-tabs">'+getVisibleHorseEntries().map(({h,i})=>
-`<div class="horse-tab${i===sel?' active':''}" data-idx="${i}">${h.emoji} ${h.name}</div>`
+`<div class="horse-tab${i===sel?' active':''}" data-idx="${i}">${escHtml(h.emoji)} ${escHtml(h.name)}</div>`
 ).join('')+'</div>';
 }
 
@@ -502,7 +511,7 @@ const barClass=total<lo?'under':total>hi?'over':'good';
 
 let html=horseTabs(selectedHorse);
 const idealW=h.idealWeight?` → Ideal: ${h.idealWeight} lb`:'';
-html+=`<div class="card"><h3>${h.emoji} ${h.name} <span style="font-size:13px;color:var(--text-light)">${h.weight} lb${idealW}</span></h3>`;
+html+=`<div class="card"><h3>${escHtml(h.emoji)} ${escHtml(h.name)} <span style="font-size:13px;color:var(--text-light)">${h.weight} lb${idealW}</span></h3>`;
 html+='<div class="conditions-list">';
 h.conditions.forEach(c=>{
 html+=`<span class="badge ${CONDITION_BADGE[c]||''}">${CONDITION_LABELS[c]||c}</span>`;
@@ -594,7 +603,7 @@ html+=`<div style="background:${bg};border:1.5px solid ${border};border-radius:8
 const recSupps=supps.filter(s=>s.recommended);
 const otherSupps=supps.filter(s=>!s.recommended);
 if(recSupps.length){
-html+='<div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">✨ Recommended for '+h.name+'</div>';
+html+='<div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">✨ Recommended for '+escHtml(h.name)+'</div>';
 }
 function renderSuppRow(s){
 const st=getSuppState(h.id,s.id);
@@ -628,7 +637,7 @@ const el=document.getElementById('page-summary');
 const visibleHorses=getVisibleHorses();
 let html='<div class="card"><h3>📊 Daily Feed Summary</h3>';
 html+='<div style="overflow-x:auto"><table class="summary-table"><tr><th>Feed</th>';
-visibleHorses.forEach(h=>{html+=`<th>${h.emoji} ${h.name}</th>`});
+visibleHorses.forEach(h=>{html+=`<th>${escHtml(h.emoji)} ${escHtml(h.name)}</th>`});
 html+='<th>Total</th></tr>';
 let grandTotals={};
 FEED_TYPES.forEach(f=>{
@@ -843,11 +852,13 @@ html+=`<div class="season-btn${state.season===s?' active':''}" onclick="setSeaso
 });
 html+='</div><div style="font-size:12px;color:var(--text-light)">Season is informational; short-grazed pasture is treated as high-risk and is not counted as feed.</div></div>';
 
+html+='<div class="card"><button class="btn btn-accent btn-block" onclick="addHorse()">＋ Add Horse</button><div style="font-size:12px;color:var(--text-light);margin-top:8px">New horses start at 800 lb with Healthy condition and Moderate activity.</div></div>';
+
 getVisibleHorseEntries().forEach(({h,i:hi})=>{
-html+=`<div class="card horse-settings-card"><h3>${h.emoji} ${h.name}</h3>`;
-html+=`<div class="form-group"><label>Name</label><input value="${h.name}" onchange="updateHorse(${hi},'name',this.value)"></div>`;
-html+=`<div class="form-group"><label>Weight (lb)</label><input type="number" value="${h.weight}" onchange="updateHorse(${hi},'weight',+this.value)"></div>`;
-html+=`<div class="form-group"><label>Ideal Weight (lb) — leave 0 for none</label><input type="number" value="${h.idealWeight||0}" onchange="updateHorse(${hi},'idealWeight',+this.value||undefined)"></div>`;
+html+=`<div class="card horse-settings-card"><h3>${escHtml(h.emoji)} ${escHtml(h.name)}</h3>`;
+html+=`<div class="form-group"><label>Name</label><input value="${escHtml(h.name)}" oninput="updateHorseValue(${hi},'name',this.value)" onchange="renderSettings()"></div>`;
+html+=`<div class="form-group"><label>Weight (lb)</label><input type="number" value="${h.weight}" oninput="updateHorseValue(${hi},'weight',+this.value||0)" onchange="renderSettings()"></div>`;
+html+=`<div class="form-group"><label>Ideal Weight (lb) — leave 0 for none</label><input type="number" value="${h.idealWeight||0}" oninput="updateHorseValue(${hi},'idealWeight',+this.value||undefined)" onchange="renderSettings()"></div>`;
 html+=`<div class="form-group"><label>Conditions</label><div style="display:flex;flex-wrap:wrap;gap:6px">`;
 ALL_CONDITIONS.forEach(c=>{
 const active=h.conditions.includes(c);
@@ -879,6 +890,15 @@ html+='<div class="card"><button class="btn btn-danger btn-block" onclick="reset
 el.innerHTML=html;
 }
 window.setSeason=function(s){state.season=s;save();renderSettings()};
+window.addHorse=function(){
+const horse={id:createHorseId(),name:'New Horse',weight:800,conditions:['healthy'],activity:'moderate',emoji:'🐴'};
+state.horses.push(horse);
+selectedHorse=state.horses.length-1;
+trendHorse=selectedHorse;
+save();
+renderSettings();
+};
+window.updateHorseValue=function(i,k,v){state.horses[i][k]=v;save()};
 window.updateHorse=function(i,k,v){state.horses[i][k]=v;save();renderSettings()};
 window.toggleCondition=function(i,c){
 const h=state.horses[i];
