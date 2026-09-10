@@ -489,6 +489,14 @@ do{id='horse_'+Date.now().toString(36)+'_'+Math.floor(Math.random()*1000).toStri
 while(state.horses.some(h=>h.id===id));
 return id;
 }
+function isDefaultHorse(id){
+return DEFAULT_HORSES.some(h=>h.id===id);
+}
+function cleanupHorseData(horseId){
+Object.keys(state.adjustments).forEach(k=>{if(k.startsWith(horseId+'_'))delete state.adjustments[k]});
+Object.keys(state.supplements).forEach(k=>{if(k.startsWith('supp_'+horseId+'_'))delete state.supplements[k]});
+if(state.feeds&&state.feeds[horseId])delete state.feeds[horseId];
+}
 
 // ── Render: Horse Tabs (reusable) ──
 function horseTabs(sel,onChange){
@@ -854,7 +862,8 @@ html+='</div><div style="font-size:12px;color:var(--text-light)">Season is infor
 
 html+='<div class="card"><button class="btn btn-accent btn-block" onclick="addHorse()">＋ Add Horse</button><div style="font-size:12px;color:var(--text-light);margin-top:8px">New horses start at 800 lb with Healthy condition and Moderate activity.</div></div>';
 
-getVisibleHorseEntries().forEach(({h,i:hi})=>{
+const visibleHorseEntries=getVisibleHorseEntries();
+visibleHorseEntries.forEach(({h,i:hi})=>{
 html+=`<div class="card horse-settings-card"><h3>${escHtml(h.emoji)} ${escHtml(h.name)}</h3>`;
 html+=`<div class="form-group"><label>Name</label><input value="${escHtml(h.name)}" oninput="updateHorseValue(${hi},'name',this.value)" onchange="renderSettings()"></div>`;
 html+=`<div class="form-group"><label>Weight (lb)</label><input type="number" value="${h.weight}" oninput="updateHorseValue(${hi},'weight',+this.value||0)" onchange="renderSettings()"></div>`;
@@ -869,7 +878,11 @@ html+=`<div class="form-group"><label>Activity Level</label><div class="activity
 ACTIVITIES.forEach(a=>{
 html+=`<div class="activity-opt${h.activity===a.id?' active':''}" onclick="setActivity(${hi},'${a.id}')">${a.label}</div>`;
 });
-html+='</div></div></div>';
+html+='</div></div>';
+if(visibleHorseEntries.length>1){
+html+=`<div style="text-align:right;margin-top:12px"><button class="btn btn-danger btn-sm" onclick="deleteHorse(${hi})">Delete Horse</button></div>`;
+}
+html+='</div>';
 });
 
 // ── Cloud Sync section ──
@@ -897,9 +910,24 @@ selectedHorse=state.horses.length-1;
 trendHorse=selectedHorse;
 save();
 renderSettings();
+alert('New Horse added. Rename it below, or delete it from Settings if it was added by mistake.');
 };
 window.updateHorseValue=function(i,k,v){state.horses[i][k]=v;save()};
 window.updateHorse=function(i,k,v){state.horses[i][k]=v;save();renderSettings()};
+window.deleteHorse=function(i){
+const h=state.horses[i];
+if(!h||h.hidden)return;
+if(getVisibleHorseEntries().length<=1){alert('Keep at least one horse in the calculator.');return;}
+if(!confirm('Delete '+h.name+'? This removes its feed adjustments and supplement settings.'))return;
+cleanupHorseData(h.id);
+if(isDefaultHorse(h.id))h.hidden=true;
+else state.horses.splice(i,1);
+const next=getVisibleHorseEntries()[0];
+selectedHorse=next?next.i:0;
+if(!state.horses[trendHorse]||state.horses[trendHorse].hidden)trendHorse=selectedHorse;
+save();
+renderSettings();
+};
 window.toggleCondition=function(i,c){
 const h=state.horses[i];
 const idx=h.conditions.indexOf(c);
