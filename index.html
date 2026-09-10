@@ -191,7 +191,9 @@ if(remote.horses)state.horses=remote.horses;
 if(remote.season)state.season=remote.season;
 if(remote.pastureMode)state.pastureMode=remote.pastureMode;
 if(remote.winterForage)state.winterForage=remote.winterForage;
+if(remote.winterForages)state.winterForages=remote.winterForages;
 state._ts=remoteTs;
+normalizeState(state);
 localStorage.setItem('hfc_state',JSON.stringify(state));
 render();
 }
@@ -213,7 +215,7 @@ adjustments:state.adjustments||{},
 supplements:state.supplements||{},
 season:state.season,
 pastureMode:state.pastureMode||'short',
-winterForage:state.winterForage||'teff_pellets',
+winterForages:state.winterForages||[state.winterForage||'teff_pellets'],
 _ts:state._ts
 }).then(()=>{syncPaused=false}).catch(()=>{syncPaused=false});
 }
@@ -324,7 +326,7 @@ return{
 horses:JSON.parse(JSON.stringify(DEFAULT_HORSES)),
 season:getAutoSeason(),
 pastureMode:'short',
-winterForage:'teff_pellets',
+winterForages:['teff_pellets'],
 feeds:{},supplements:{},adjustments:{}
 };
 }
@@ -340,7 +342,12 @@ if(!s.horses.some(h=>h.id===def.id))s.horses.push(JSON.parse(JSON.stringify(def)
 if(!s.adjustments)s.adjustments={};
 if(!s.supplements)s.supplements={};
 if(!s.pastureMode)s.pastureMode='short';
-if(!s.winterForage)s.winterForage='teff_pellets';
+if(!Array.isArray(s.winterForages)){
+s.winterForages=s.winterForage?[s.winterForage]:['teff_pellets'];
+}
+s.winterForages=s.winterForages.filter(id=>WINTER_FORAGES.some(f=>f.id===id));
+if(!s.winterForages.length)s.winterForages=['teff_pellets'];
+delete s.winterForage;
 return s;
 }
 function loadState(){
@@ -384,11 +391,26 @@ return{label:'Tested Low-NSC Pasture',badge:credit?credit.toFixed(1)+' lb est.':
 return{label:'Short-Grazed Pasture',badge:'High Risk / Do Not Count',credit:0,note:'🌿 Pasture is currently short-grazed. In the Pacific Northwest, short regrowth and stem bases can be sugar-rich, so pasture is not counted as safe forage.'};
 }
 
-function selectedForageId(h){
-const choice=state.winterForage||'teff_pellets';
-if(choice==='none')return null;
-if((h.conditions.includes('ir')||h.conditions.includes('overweight'))&&choice==='alfalfa_forage')return 'teff_pellets';
-return choice;
+function selectedForageIds(h){
+let choices=Array.isArray(state.winterForages)?state.winterForages:['teff_pellets'];
+choices=choices.filter(id=>id!=='none');
+if(!choices.length)return[];
+if(h.conditions.includes('ir')||h.conditions.includes('overweight')){
+choices=choices.filter(id=>id!=='alfalfa_forage');
+if(!choices.length)choices=['teff_pellets'];
+}
+return WINTER_FORAGES.map(f=>f.id).filter(id=>choices.includes(id)&&id!=='none');
+}
+function addForageAmounts(r,forageIds,total){
+if(!forageIds.length||total<=0)return;
+const each=total/forageIds.length;
+forageIds.forEach((id,idx)=>{
+const amt=idx===forageIds.length-1?total-(each*(forageIds.length-1)):each;
+r[id]=+((r[id]||0)+amt).toFixed(1);
+});
+}
+function forageNames(ids){
+return ids.map(id=>FEED_TYPES.find(f=>f.id===id)?.name||id).join(' + ');
 }
 
 function recommend(h){
@@ -416,22 +438,22 @@ if(c.includes('hoof'))notes.push('🐴 Hoof/metabolic support: watch total miner
 // IR/overweight (Spoi-like)
 else if(hasIR||hasOW){
 const target=lo+(hi-lo)*0.3; // lean toward lower end
-const forageId=selectedForageId(h);
+const forageIds=selectedForageIds(h);
 const forageAmt=Math.max(0,target-pasture.credit);
-if(forageId)r[forageId]=+forageAmt.toFixed(1);
+addForageAmounts(r,forageIds,forageAmt);
 notes.push('🚨 PASTURE WARNING: IR/overweight horses should stay off short pasture by default. If turnout is necessary, use a dry lot/track setup, grazing muzzle, or very limited early-morning access.');
-if((state.winterForage||'teff_pellets')==='alfalfa_forage')notes.push('⚠️ Alfalfa is not auto-selected for IR/overweight horses. Teff pellets are used as the safer default forage option.');
-else if(forageId)notes.push('💧 '+FEED_TYPES.find(f=>f.id===forageId).name+' is shown as the winter fiber source. Testing is still the reliable way to confirm NSC.');
+if((state.winterForages||[]).includes('alfalfa_forage'))notes.push('⚠️ Alfalfa is not auto-selected for IR/overweight horses. Other selected forage is used instead.');
+if(forageIds.length)notes.push('💧 '+forageNames(forageIds)+' shown as winter fiber. Testing is still the reliable way to confirm NSC.');
 if(hasOW)notes.push('⚖️ Target lower end of range for weight management');
 if(h.idealWeight)notes.push('🎯 Current: '+h.weight+' lb → Ideal: '+h.idealWeight+' lb (target '+Math.round((h.weight-h.idealWeight)/h.weight*100)+'% weight loss)');
 notes.push('💊 Remission adds magnesium/biotin/chromium support; review overlap with AminoTrace+ before increasing dose.');
 }
 // Healthy visible horses (Uffie-like)
 else{
-const forageId=selectedForageId(h);
+const forageIds=selectedForageIds(h);
 const forageAmt=Math.max(0,mid-pasture.credit);
-if(forageId)r[forageId]=+forageAmt.toFixed(1);
-if(forageId)notes.push('🥣 '+FEED_TYPES.find(f=>f.id===forageId).name+' is shown as the winter fiber source. Set it to 0 if this horse does not need extra forage.');
+addForageAmounts(r,forageIds,forageAmt);
+if(forageIds.length)notes.push('🥣 '+forageNames(forageIds)+' shown as winter fiber. Set any feed to 0 if this horse does not need it.');
 else notes.push('🥣 No winter fiber source selected. Add hay/pellets manually if pasture is not enough.');
 }
 if(hasDig&&!notes.some(n=>n.includes('meals')))notes.push('💚 Digestive sensitive: consider splitting meals');
@@ -941,7 +963,8 @@ html+='</div><div style="font-size:12px;color:var(--text-light);margin-top:8px">
 
 html+='<div class="card"><h3>🌾 Winter Fiber</h3><div class="option-grid">';
 WINTER_FORAGES.forEach(f=>{
-html+=`<button class="option-btn${(state.winterForage||'teff_pellets')===f.id?' active':''}" onclick="setWinterForage('${f.id}')"><div class="label">${f.label}</div></button>`;
+const active=(state.winterForages||['teff_pellets']).includes(f.id);
+html+=`<button class="option-btn${active?' active':''}" onclick="toggleWinterForage('${f.id}')"><div class="label">${active?'✓ ':''}${f.label}</div></button>`;
 });
 html+='</div><div style="font-size:12px;color:var(--text-light);margin-top:8px">Used to fill forage gaps when pasture is limited. Feed amounts can still be set to 0.</div></div>';
 
@@ -989,7 +1012,20 @@ el.innerHTML=html;
 }
 window.setSeason=function(s){state.season=s;save();renderSettings()};
 window.setPastureMode=function(mode){state.pastureMode=mode;save();renderSettings()};
-window.setWinterForage=function(forage){state.winterForage=forage;save();renderSettings()};
+window.toggleWinterForage=function(forage){
+let current=Array.isArray(state.winterForages)?state.winterForages.slice():['teff_pellets'];
+if(forage==='none')current=['none'];
+else{
+current=current.filter(id=>id!=='none');
+if(current.includes(forage))current=current.filter(id=>id!==forage);
+else current.push(forage);
+if(!current.length)current=['none'];
+}
+state.winterForages=current;
+state.winterForages=WINTER_FORAGES.map(f=>f.id).filter(id=>state.winterForages.includes(id));
+save();
+renderSettings();
+};
 window.addHorse=function(){
 const horse={id:createHorseId(),name:'New Horse',weight:800,conditions:['healthy'],activity:'moderate',emoji:'🐴'};
 state.horses.push(horse);
