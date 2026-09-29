@@ -40,6 +40,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .badge-digestive{background:#d9f2e6;color:#006b52}
 .badge-ir{background:#fce4d6;color:#d55e00}
 .badge-overweight{background:#fff2cc;color:#b27300}
+.badge-ppid{background:#eadcf5;color:#69408f}
+.badge-underweight{background:#dce9f7;color:#005a9e}
 .badge-hoof{background:#dce9f7;color:#005a9e}
 .badge-healthy{background:#d9f2e6;color:#006b52}
 .target-bar{height:8px;background:#e8e0d8;border-radius:4px;margin:8px 0;overflow:visible;position:relative}
@@ -252,15 +254,15 @@ return a+'-'+b+'-'+Math.floor(Math.random()*9000+1000);
 // ── Data Defaults ──
 const FEED_TYPES=[
 {id:'pasture',name:'Short-Grazed Pasture',unit:'risk',isPasture:true},
-{id:'lmf_senior_low_carb',name:'LMF Senior Low Carb',unit:'lb',horseIds:['tenor']},
+{id:'lmf_senior_low_carb',name:'LMF Senior Low Carb',unit:'lb',horseIds:['tenor'],conditionIds:['ppid']},
 {id:'teff_pellets',name:'Teff Grass Pellets',unit:'lb'},
 {id:'grass_hay',name:'Grass Hay',unit:'lb'},
 {id:'alfalfa_forage',name:'Alfalfa Hay/Pellets',unit:'lb'}
 ];
 
-const ALL_CONDITIONS=['senior','teeth','digestive','pssm','hoof','ir','overweight','healthy'];
-const CONDITION_LABELS={senior:'Senior',teeth:'Teeth Problem',digestive:'Digestive Sensitive',pssm:'PSSM',hoof:'Hoof Care',ir:'Insulin Resistant',overweight:'Overweight',healthy:'Healthy'};
-const CONDITION_BADGE={senior:'badge-senior',teeth:'badge-teeth',digestive:'badge-digestive',pssm:'badge-pssm',hoof:'badge-hoof',ir:'badge-ir',overweight:'badge-overweight',healthy:'badge-healthy'};
+const ALL_CONDITIONS=['senior','teeth','digestive','pssm','ppid','hoof','ir','underweight','overweight','healthy'];
+const CONDITION_LABELS={senior:'Senior',teeth:'Teeth Problem',digestive:'Digestive Sensitive',pssm:'PSSM',ppid:'PPID',hoof:'Hoof Care',ir:'Insulin Resistant',underweight:'Underweight',overweight:'Overweight',healthy:'Healthy'};
+const CONDITION_BADGE={senior:'badge-senior',teeth:'badge-teeth',digestive:'badge-digestive',pssm:'badge-pssm',ppid:'badge-ppid',hoof:'badge-hoof',ir:'badge-ir',underweight:'badge-underweight',overweight:'badge-overweight',healthy:'badge-healthy'};
 
 const ALL_SUPPS=[
 {id:'amino_trace',name:'Mad Barn AminoTrace+',desc:'Low-NSC vitamin/mineral + amino acid balancer; no added iron',dose:3.5,unit:'oz',forAll:true,primary:true,mfgDose:'100 g (~3.5 oz) for 700 lb; 150 g for 900 lb',mfgNote:'Primary mineral base. Avoid stacking with other complete mineral bases without ration review.'},
@@ -361,10 +363,13 @@ return amounts;
 // ── End Winter Fiber Pure Helpers ──
 
 // ── Feed Plan Pure Helpers ──
-function getTenorSeniorLowCarbRange(h){
+function getSeniorLowCarbPlan(h){
 const rates={light:[0.015,0.017],moderate:[0.016,0.018],heavy:[0.018,0.020]};
 const range=rates[h.activity]||rates.moderate;
-return range.map(rate=>Math.round(h.weight*rate*10)/10);
+const amounts=range.map(rate=>Math.round(h.weight*rate*10)/10);
+const underweight=Array.isArray(h.conditions)&&h.conditions.includes('underweight');
+const recommended=underweight?amounts[1]:Math.round(((amounts[0]+amounts[1])/2)*10)/10;
+return{range:amounts,recommended};
 }
 // ── End Feed Plan Pure Helpers ──
 
@@ -439,7 +444,7 @@ pushToFirebase();
 // ── Recommendation Engine ──
 function getTargetRange(h){
 const w=h.weight;
-if(h.id==='tenor')return getTenorSeniorLowCarbRange(h);
+if(h.id==='tenor'||h.conditions.includes('ppid'))return getSeniorLowCarbPlan(h).range;
 const hasIR=h.conditions.includes('ir');
 const hasOW=h.conditions.includes('overweight');
 if(hasIR||hasOW)return[w*0.012,w*0.015];
@@ -490,24 +495,36 @@ const[lo,hi]=getTargetRange(h);
 const mid=(lo+hi)/2;
 const c=h.conditions;
 const hasIR=c.includes('ir');const hasOW=c.includes('overweight');
+const hasPPID=c.includes('ppid');const hasUW=c.includes('underweight');
 const hasDig=c.includes('digestive');
 const isTenor=h.id==='tenor';
+const useSeniorLowCarb=isTenor||hasPPID;
 const pasture=getPasturePlan(h);
 
 let r={pasture:pasture.credit,lmf_senior_low_carb:0,teff_pellets:0,grass_hay:0,alfalfa_forage:0};
 let notes=[];
 notes.push(pasture.note);
 
-// Tenor only: Senior Low Carb complete ration.
-if(isTenor){
-// LMF Senior Low Carb is Tenor's complete low-sugar senior ration.
-r.lmf_senior_low_carb=+mid.toFixed(1);
-notes.push('⚠️ PSSM: Keep starch/sugar low. LMF Senior Low Carb is listed by LMF as max 6% sugar and max 2% starch.');
-notes.push('⚖️ Weight maintenance start: '+mid.toFixed(1)+' lb/day (label range '+lo.toFixed(1)+'–'+hi.toFixed(1)+' lb for '+h.activity+' work). Recheck body condition and weight regularly.');
+// Tenor and PPID horses: Senior Low Carb complete ration.
+if(useSeniorLowCarb){
+const seniorPlan=getSeniorLowCarbPlan(h);
+const seniorAmount=seniorPlan.recommended;
+r.lmf_senior_low_carb=seniorAmount;
+if(c.includes('pssm'))notes.push('⚠️ PSSM: Keep starch/sugar low. LMF Senior Low Carb is listed by LMF as max 6% sugar and max 2% starch.');
+else notes.push('✅ LMF Senior Low Carb is a complete feed listed at max 6% sugar and max 2% starch.');
+if(hasPPID)notes.push('🩺 PPID: Ask the vet to check insulin status. PPID alone does not prove insulin dysregulation, but a positive result changes pasture and NSC management.');
+if(hasUW){
+notes.push('⚖️ Underweight starting point: '+seniorAmount.toFixed(1)+' lb/day, the upper end of the '+lo.toFixed(1)+'–'+hi.toFixed(1)+' lb label range for '+h.activity+' work. Recheck weight and body condition every 2–4 weeks.');
+if(h.idealWeight&&h.idealWeight>h.weight)notes.push('🎯 Current: '+h.weight+' lb → Ideal: '+h.idealWeight+' lb. Increase toward the goal gradually; do not calculate the full ration from ideal weight all at once.');
+}else notes.push('⚖️ Weight maintenance start: '+seniorAmount.toFixed(1)+' lb/day (label range '+lo.toFixed(1)+'–'+hi.toFixed(1)+' lb for '+h.activity+' work). Recheck body condition and weight regularly.');
+if(isTenor||c.includes('teeth')){
 notes.push('🦷 Teeth: LMF recommends soaking Senior Low Carb for 20 minutes for horses with chewing difficulties. Add enough water to fully submerge the feed.');
-notes.push('🌾 The label also calls for 2–3 lb/day of long-stem hay. Confirm a safely chewable forage form with the vet/dentist if Tenor cannot manage long-stem hay.');
-notes.push('🍽️ Split into 3-4 smaller meals throughout the day');
+notes.push('🌾 The label also calls for 2–3 lb/day of long-stem hay. Confirm a safely chewable forage form with the vet/dentist if chewing is unreliable.');
+}else notes.push('🌾 The label also calls for 2–3 lb/day of long-stem hay. If insulin dysregulation is confirmed, use an appropriately low-NSC tested forage plan.');
+const minMeals=Math.max(3,Math.ceil(seniorAmount/(h.weight*0.005)));
+notes.push('🍽️ Split into at least '+minMeals+' smaller meals (about '+(seniorAmount/minMeals).toFixed(1)+' lb each) so no meal exceeds 0.5% of body weight.');
 if(c.includes('hoof'))notes.push('🐴 LMF is fully fortified. Review AminoTrace+ and Remission with the vet/nutritionist before combining them at full doses.');
+else notes.push('🐴 LMF is fully fortified. Review additional vitamin/mineral supplements before combining them at full doses.');
 }
 // IR/overweight (Spoi-like)
 else if(hasIR||hasOW){
@@ -635,7 +652,8 @@ const first=getVisibleHorseEntries()[0];
 selectedHorse=first?first.i:0;
 }
 function feedAppliesToHorse(feed,h){
-return !feed.horseIds||feed.horseIds.includes(h.id);
+if(!feed.horseIds&&!feed.conditionIds)return true;
+return(!!feed.horseIds&&feed.horseIds.includes(h.id))||(!!feed.conditionIds&&feed.conditionIds.some(c=>h.conditions.includes(c)));
 }
 function escHtml(v){
 return String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
@@ -1173,8 +1191,12 @@ if(idx>=0){h.conditions.splice(idx,1)}
 else{
 h.conditions.push(c);
 // Mutual exclusion: overweight/ir ↔ healthy
-if(c==='overweight'||c==='ir'){h.conditions=h.conditions.filter(x=>x!=='healthy')}
-if(c==='healthy'){h.conditions=h.conditions.filter(x=>x!=='overweight'&&x!=='ir')}
+if(c==='overweight'||c==='underweight'||c==='ir'||c==='ppid'){
+h.conditions=h.conditions.filter(x=>x!=='healthy');
+if(c==='overweight')h.conditions=h.conditions.filter(x=>x!=='underweight');
+if(c==='underweight')h.conditions=h.conditions.filter(x=>x!=='overweight');
+}
+if(c==='healthy'){h.conditions=h.conditions.filter(x=>!['overweight','underweight','ir','ppid'].includes(x))}
 }
 save();renderSettings();
 };
