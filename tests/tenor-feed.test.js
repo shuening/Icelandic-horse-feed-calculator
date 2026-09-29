@@ -14,11 +14,11 @@ assert.ok(helperBlock, 'feed plan helper block should exist in index.html');
 const context = {};
 vm.createContext(context);
 vm.runInContext(
-  `${helperBlock[1]}\nthis.testApi={getSeniorLowCarbPlan};`,
+  `${helperBlock[1]}\nthis.testApi={getSeniorLowCarbPlan,getLowNscCompletePlan};`,
   context
 );
 
-const { getSeniorLowCarbPlan } = context.testApi;
+const { getSeniorLowCarbPlan, getLowNscCompletePlan } = context.testApi;
 
 test('Tenor moderate-work Senior Low Carb range follows the label', () => {
   const plan = getSeniorLowCarbPlan({
@@ -49,4 +49,26 @@ test('an underweight PPID horse starts at the upper label amount', () => {
   });
   assert.deepEqual(Array.from(plan.range), [12.8, 14.4]);
   assert.equal(plan.recommended, 14.4);
+});
+
+test('an 800 lb moderate horse gets 13.2 lb Low NSC Complete', () => {
+  const plan = getLowNscCompletePlan({
+    weight: 800,
+    activity: 'moderate',
+    conditions: ['healthy']
+  });
+  assert.deepEqual(Array.from(plan.officialRange), [9.6, 16]);
+  assert.deepEqual(Array.from(plan.targetRange), [12, 14.4]);
+  assert.equal(plan.recommended, 13.2);
+});
+
+test('Spoi gets a lower-end Low NSC Complete starting amount', () => {
+  const plan = getLowNscCompletePlan({
+    weight: 950,
+    activity: 'moderate',
+    conditions: ['ir', 'overweight']
+  });
+  assert.deepEqual(Array.from(plan.officialRange), [11.4, 19]);
+  assert.deepEqual(Array.from(plan.targetRange), [11.4, 14.3]);
+  assert.equal(plan.recommended, 12.3);
 });

@@ -314,7 +314,8 @@ return a+'-'+b+'-'+Math.floor(Math.random()*9000+1000);
 // ── Data Defaults ──
 const FEED_TYPES=[
 {id:'pasture',name:'Short-Grazed Pasture',unit:'risk',isPasture:true},
-{id:'lmf_senior_low_carb',name:'LMF Senior Low Carb',unit:'lb',horseIds:['tenor'],conditionIds:['ppid']},
+{id:'lmf_low_nsc_complete',name:'LMF Low NSC Complete',unit:'lb',horseIds:['odinn','uffie','spoi','gonay','olaf']},
+{id:'lmf_senior_low_carb',name:'LMF Senior Low Carb',unit:'lb',horseIds:['tenor','skor']},
 {id:'teff_pellets',name:'Teff Grass Pellets',unit:'lb'},
 {id:'grass_hay',name:'Grass Hay',unit:'lb'},
 {id:'alfalfa_forage',name:'Alfalfa Hay/Pellets',unit:'lb'}
@@ -450,6 +451,18 @@ const underweight=Array.isArray(h.conditions)&&h.conditions.includes('underweigh
 const recommended=underweight?amounts[1]:Math.round(((amounts[0]+amounts[1])/2)*10)/10;
 return{range:amounts,recommended};
 }
+
+function getLowNscCompletePlan(h){
+const conditions=Array.isArray(h.conditions)?h.conditions:[];
+const weight=Math.max(0,Number(h.weight)||0);
+const officialRange=[weight*0.012,weight*0.020].map(amount=>Math.round(amount*10)/10);
+const metabolic=conditions.includes('ir')||conditions.includes('overweight');
+const activityRates={light:[0.012,0.015],moderate:[0.015,0.018],heavy:[0.018,0.020]};
+const rates=metabolic?[0.012,0.015]:(activityRates[h.activity]||activityRates.moderate);
+const targetRange=rates.map(rate=>Math.round(weight*rate*10)/10);
+const raw=metabolic?targetRange[0]+(targetRange[1]-targetRange[0])*0.3:(targetRange[0]+targetRange[1])/2;
+return{officialRange,targetRange,recommended:Math.round(raw*10)/10};
+}
 // ── End Feed Plan Pure Helpers ──
 
 // ── State ──
@@ -515,12 +528,8 @@ pushToFirebase();
 
 // ── Recommendation Engine ──
 function getTargetRange(h){
-const w=h.weight;
-if(h.id==='tenor'||h.conditions.includes('ppid'))return getSeniorLowCarbPlan(h).range;
-const hasIR=h.conditions.includes('ir');
-const hasOW=h.conditions.includes('overweight');
-if(hasIR||hasOW)return[w*0.012,w*0.015];
-return[w*0.015,w*0.018];
+if(h.id==='tenor'||h.id==='skor')return getSeniorLowCarbPlan(h).range;
+return getLowNscCompletePlan(h).targetRange;
 }
 
 function getPasturePlan(h){
@@ -564,20 +573,19 @@ return ids.map(id=>FEED_TYPES.find(f=>f.id===id)?.name||id).join(' + ');
 
 function recommend(h){
 const[lo,hi]=getTargetRange(h);
-const mid=(lo+hi)/2;
 const c=h.conditions;
 const hasIR=c.includes('ir');const hasOW=c.includes('overweight');
 const hasPPID=c.includes('ppid');const hasUW=c.includes('underweight');
 const hasDig=c.includes('digestive');
 const isTenor=h.id==='tenor';
-const useSeniorLowCarb=isTenor||hasPPID;
+const useSeniorLowCarb=isTenor||h.id==='skor';
 const pasture=getPasturePlan(h);
 
-let r={pasture:pasture.credit,lmf_senior_low_carb:0,teff_pellets:0,grass_hay:0,alfalfa_forage:0};
+let r={pasture:pasture.credit,lmf_low_nsc_complete:0,lmf_senior_low_carb:0,teff_pellets:0,grass_hay:0,alfalfa_forage:0};
 let notes=[];
 notes.push(pasture.note);
 
-// Tenor and PPID horses: Senior Low Carb complete ration.
+// Tenor and Skor: Senior Low Carb complete ration.
 if(useSeniorLowCarb){
 const seniorPlan=getSeniorLowCarbPlan(h);
 const seniorAmount=seniorPlan.recommended;
@@ -598,26 +606,27 @@ notes.push('🍽️ Split into at least '+minMeals+' smaller meals (about '+(sen
 if(c.includes('hoof'))notes.push('🐴 LMF is fully fortified. Review AminoTrace+ and Remission with the vet/nutritionist before combining them at full doses.');
 else notes.push('🐴 LMF is fully fortified. Review additional vitamin/mineral supplements before combining them at full doses.');
 }
-// IR/overweight (Spoi-like)
-else if(hasIR||hasOW){
-const target=lo+(hi-lo)*0.3; // lean toward lower end
+// All other barn horses: Low NSC Complete is the main ration.
+else{
+const completePlan=getLowNscCompletePlan(h);
+const completeAmount=Math.max(0,+(completePlan.recommended-pasture.credit).toFixed(1));
+r.lmf_low_nsc_complete=completeAmount;
 const forageIds=selectedForageIds(h);
-const forageAmt=Math.max(0,target-pasture.credit);
-addForageAmounts(r,forageIds,forageAmt);
+notes.push('✅ LMF Low NSC Complete is the main complete ration. LMF lists max 6% sugar and max 2% starch, with forage, vitamins, and minerals included.');
+notes.push('⚖️ Start at '+completeAmount.toFixed(1)+' lb/day for '+h.weight+' lb and '+h.activity+' activity. The LMF label allows '+completePlan.officialRange[0].toFixed(1)+'–'+completePlan.officialRange[1].toFixed(1)+' lb/day for this body weight when fed as the total diet.');
+if(pasture.credit)notes.push('🌿 The '+pasture.credit.toFixed(1)+' lb pasture credit has been subtracted from the complete-feed amount.');
+if(forageIds.length)notes.push('🌾 '+forageNames(forageIds)+' remains available as optional winter fiber and starts at 0 lb. Enter the actual barn amount when known; extra forage raises the daily total.');
+else notes.push('🌾 No optional winter fiber is selected. LMF Low NSC Complete already includes the forage portion of the ration.');
+const minMeals=Math.max(3,Math.ceil(completeAmount/(h.weight*0.005)));
+notes.push('🍽️ Split into at least '+minMeals+' smaller meals (about '+(completeAmount/minMeals).toFixed(1)+' lb each) so no meal exceeds 0.5% of body weight.');
+notes.push('🐴 This feed is fully fortified. Review AminoTrace+ and other vitamin/mineral supplements before combining them at full doses.');
+if(hasIR||hasOW){
 notes.push('🚨 PASTURE WARNING: IR/overweight horses should stay off short pasture by default. If turnout is necessary, use a dry lot/track setup, grazing muzzle, or very limited early-morning access.');
 if((state.winterForages||[]).includes('alfalfa_forage'))notes.push('⚠️ Alfalfa is not auto-selected for IR/overweight horses. Other selected forage is used instead.');
-if(forageIds.length)notes.push('💧 '+forageNames(forageIds)+' shown as winter fiber. Testing is still the reliable way to confirm NSC.');
 if(hasOW)notes.push('⚖️ Target lower end of range for weight management');
 if(h.idealWeight)notes.push('🎯 Current: '+h.weight+' lb → Ideal: '+h.idealWeight+' lb (target '+Math.round((h.weight-h.idealWeight)/h.weight*100)+'% weight loss)');
 notes.push('💊 Remission adds magnesium/biotin/chromium support; review overlap with AminoTrace+ before increasing dose.');
 }
-// Healthy visible horses (Uffie-like)
-else{
-const forageIds=selectedForageIds(h);
-const forageAmt=Math.max(0,mid-pasture.credit);
-addForageAmounts(r,forageIds,forageAmt);
-if(forageIds.length)notes.push('🥣 '+forageNames(forageIds)+' shown as winter fiber. Set any feed to 0 if this horse does not need it.');
-else notes.push('🥣 No winter fiber source selected. Add hay/pellets manually if pasture is not enough.');
 }
 if(hasDig&&!notes.some(n=>n.includes('meals')))notes.push('💚 Digestive sensitive: consider splitting meals');
 
@@ -778,10 +787,11 @@ if(!feedAppliesToHorse(f,h))return;
 const recVal=rec.feeds[f.id]||0;
 const adj=getAdjusted(h.id,f.id);
 const val=adj!==null?adj:recVal;
-if(recVal<=0&&adj===null)return;
+const optionalForage=WINTER_FORAGE_IDS.includes(f.id)&&selectedForageIds(h).includes(f.id)&&!['tenor','skor'].includes(h.id);
+if(recVal<=0&&adj===null&&!optionalForage)return;
 const isAdj=adj!==null&&Math.abs(adj-recVal)>0.05;
 const forageShare=WINTER_FORAGE_IDS.includes(f.id)?getRecommendedForageShare(rec,f.id):0;
-const feedDetail=forageShare?`<small>Plan: ${recVal.toFixed(1)} lb · ${(forageShare*100).toFixed(1)}% of winter fiber</small>`:(isAdj?`<small>Rec: ${recVal.toFixed(1)} lb</small>`:'');
+const feedDetail=forageShare?`<small>Plan: ${recVal.toFixed(1)} lb · ${(forageShare*100).toFixed(1)}% of winter fiber</small>`:(optionalForage&&adj===null?'<small>Optional winter fiber · enter amount if fed</small>':(isAdj?`<small>Rec: ${recVal.toFixed(1)} lb</small>`:''));
 html+=`<div class="feed-row">
 <div class="feed-name">${f.name}${feedDetail}</div>
 <div class="feed-controls">
@@ -1130,7 +1140,7 @@ html+=`<div class="forage-ratio-row"><label>${escHtml(forage.label)}</label><div
 });
 html+='</div>';
 }
-html+='<div style="font-size:12px;color:var(--text-light);margin-top:8px">Percentages are normalized to 100%. They divide the forage target; feed amounts can still be set to 0.</div></div>';
+html+='<div style="font-size:12px;color:var(--text-light);margin-top:8px">Percentages are normalized to 100% as the winter-fiber mix reference. Enter actual supplemental pounds on the Feed tab.</div></div>';
 
 const visibleHorseEntries=getVisibleHorseEntries();
 visibleHorseEntries.forEach(({h,i:hi})=>{
