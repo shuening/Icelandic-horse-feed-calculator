@@ -350,11 +350,30 @@ const BASE_SUPPS=ALL_SUPPS.filter(s=>s.forAll);
 const TENOR_SUPPS=ALL_SUPPS.filter(s=>!s.forAll);
 
 const DEFAULT_HORSES=[
-{id:'tenor',name:'Tenor',weight:700,conditions:['senior','teeth','digestive','pssm','hoof'],activity:'moderate',emoji:'🐎'},
+{id:'tenor',name:'Tenor',weight:700,conditions:['senior','teeth','digestive','pssm','hoof'],activity:'moderate',emoji:'🐎',hidden:false},
 {id:'odinn',name:'Odinn',weight:700,conditions:['healthy'],activity:'moderate',emoji:'🏇',hidden:true},
-{id:'uffie',name:'Uffie',weight:800,conditions:['healthy'],activity:'moderate',emoji:'🐴'},
-{id:'spoi',name:'Spoi',weight:950,idealWeight:800,conditions:['ir','overweight'],activity:'moderate',emoji:'🐎'}
+{id:'uffie',name:'Uffie',weight:800,conditions:['healthy'],activity:'moderate',emoji:'🐴',hidden:false},
+{id:'spoi',name:'Spoi',weight:950,idealWeight:800,conditions:['ir','overweight'],activity:'moderate',emoji:'🐎',hidden:false},
+{id:'gonay',name:'Gonay',weight:800,conditions:['healthy'],activity:'moderate',emoji:'🐴',hidden:false},
+{id:'olaf',name:'Olaf',weight:800,conditions:['healthy'],activity:'moderate',emoji:'🐴',hidden:false},
+{id:'skor',name:'Skor',weight:800,conditions:['ppid','underweight'],activity:'moderate',emoji:'🐴',hidden:false}
 ];
+
+// ── Fixed Horse Roster Pure Helpers ──
+function normalizeHorseRoster(existing,defaults){
+const horses=Array.isArray(existing)?existing:[];
+return defaults.map(def=>{
+const match=horses.find(h=>h.id===def.id)||horses.find(h=>String(h.name||'').trim().toLowerCase()===def.name.toLowerCase());
+const defaultConditions=(def.conditions||[]).slice();
+const base=Object.assign({},def,{conditions:defaultConditions});
+const horse=match?Object.assign(base,match):base;
+horse.id=def.id;
+horse.hidden=!!def.hidden;
+horse.conditions=Array.isArray(horse.conditions)?horse.conditions.slice():defaultConditions;
+return horse;
+});
+}
+// ── End Fixed Horse Roster Pure Helpers ──
 
 const ACTIVITIES=[{id:'light',label:'Light'},{id:'moderate',label:'Moderate (~1hr/day)'},{id:'heavy',label:'Heavy'}];
 const PASTURE_MODES=[
@@ -471,14 +490,7 @@ feeds:{},supplements:{},adjustments:{}
 };
 }
 function normalizeState(s){
-if(!s.horses)s.horses=JSON.parse(JSON.stringify(DEFAULT_HORSES));
-s.horses.forEach(h=>{
-const def=DEFAULT_HORSES.find(d=>d.id===h.id);
-if(def&&def.hidden!==undefined)h.hidden=def.hidden;
-});
-DEFAULT_HORSES.forEach(def=>{
-if(!s.horses.some(h=>h.id===def.id))s.horses.push(JSON.parse(JSON.stringify(def)));
-});
+s.horses=normalizeHorseRoster(s.horses,DEFAULT_HORSES);
 if(!s.adjustments)s.adjustments={};
 if(!s.supplements)s.supplements={};
 if(!s.pastureMode)s.pastureMode='short';
@@ -718,21 +730,6 @@ return(!!feed.horseIds&&feed.horseIds.includes(h.id))||(!!feed.conditionIds&&fee
 function escHtml(v){
 return String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 }
-function createHorseId(){
-let id;
-do{id='horse_'+Date.now().toString(36)+'_'+Math.floor(Math.random()*1000).toString(36)}
-while(state.horses.some(h=>h.id===id));
-return id;
-}
-function isDefaultHorse(id){
-return DEFAULT_HORSES.some(h=>h.id===id);
-}
-function cleanupHorseData(horseId){
-Object.keys(state.adjustments).forEach(k=>{if(k.startsWith(horseId+'_'))delete state.adjustments[k]});
-Object.keys(state.supplements).forEach(k=>{if(k.startsWith('supp_'+horseId+'_'))delete state.supplements[k]});
-if(state.feeds&&state.feeds[horseId])delete state.feeds[horseId];
-}
-
 // ── Render: Horse Tabs (reusable) ──
 function horseTabs(sel,onChange){
 return '<div class="horse-tabs">'+getVisibleHorseEntries().map(({h,i})=>
@@ -1135,8 +1132,6 @@ html+='</div>';
 }
 html+='<div style="font-size:12px;color:var(--text-light);margin-top:8px">Percentages are normalized to 100%. They divide the forage target; feed amounts can still be set to 0.</div></div>';
 
-html+='<div class="card"><button class="btn btn-accent btn-block" onclick="addHorse()">＋ Add Horse</button><div style="font-size:12px;color:var(--text-light);margin-top:8px">New horses start at 800 lb with Healthy condition and Moderate activity.</div></div>';
-
 const visibleHorseEntries=getVisibleHorseEntries();
 visibleHorseEntries.forEach(({h,i:hi})=>{
 html+=`<div class="card horse-settings-card"><h3>${escHtml(h.emoji)} ${escHtml(h.name)}</h3>`;
@@ -1153,11 +1148,7 @@ html+=`<div class="form-group"><label>Activity Level</label><div class="activity
 ACTIVITIES.forEach(a=>{
 html+=`<div class="activity-opt${h.activity===a.id?' active':''}" onclick="setActivity(${hi},'${a.id}')">${a.label}</div>`;
 });
-html+='</div></div>';
-if(visibleHorseEntries.length>1){
-html+=`<div style="text-align:right;margin-top:12px"><button class="btn btn-danger btn-sm" onclick="deleteHorse(${hi})">Delete Horse</button></div>`;
-}
-html+='</div>';
+html+='</div></div></div>';
 });
 
 // ── Cloud Sync section ──
@@ -1217,33 +1208,8 @@ state.winterForageRatios=normalizeForageRatios(ids,raw);
 save();
 renderSettings();
 };
-window.addHorse=function(){
-const horse={id:createHorseId(),name:'New Horse',weight:800,conditions:['healthy'],activity:'moderate',emoji:'🐴'};
-state.horses.push(horse);
-selectedHorse=state.horses.length-1;
-trendHorse=selectedHorse;
-save();
-renderSettings();
-alert('New Horse added. Rename it below, or delete it from Settings if it was added by mistake.');
-};
 window.updateHorseValue=function(i,k,v){state.horses[i][k]=v;save()};
 window.updateHorse=function(i,k,v){state.horses[i][k]=v;save();renderSettings()};
-window.deleteHorse=function(i){
-const h=state.horses[i];
-if(!h||h.hidden)return;
-if(getVisibleHorseEntries().length<=1){alert('Keep at least one horse in the calculator.');return;}
-const horseName=h.name||'this horse';
-if(!confirm('Delete '+horseName+'?\n\nThis will remove this horse from the app and clear its feed adjustments and supplement settings.\n\nPress OK to delete, or Cancel to keep it.'))return;
-cleanupHorseData(h.id);
-if(isDefaultHorse(h.id))h.hidden=true;
-else state.horses.splice(i,1);
-const next=getVisibleHorseEntries()[0];
-selectedHorse=next?next.i:0;
-if(!state.horses[trendHorse]||state.horses[trendHorse].hidden)trendHorse=selectedHorse;
-save();
-renderSettings();
-alert(horseName+' has been deleted.');
-};
 window.toggleCondition=function(i,c){
 const h=state.horses[i];
 const idx=h.conditions.indexOf(c);
