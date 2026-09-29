@@ -183,6 +183,44 @@ let householdId=localStorage.getItem('hfc_household')||null;
 let fbRef=null;
 let fbConnected=false;
 let syncPaused=false; // prevent echo loops
+let syncBusy=false;
+
+// ── Cloud Sync Pure Helpers ──
+function cloudStatePayload(s,timestamp){
+return{
+horses:s.horses,
+adjustments:s.adjustments||{},
+supplements:s.supplements||{},
+season:s.season,
+pastureMode:s.pastureMode||'short',
+winterForages:s.winterForages||[s.winterForage||'teff_pellets'],
+winterForageRatios:s.winterForageRatios||{},
+_ts:timestamp
+};
+}
+
+function stateFromCloud(local,remote){
+const next=Object.assign({},local);
+if(Array.isArray(remote.horses))next.horses=remote.horses;
+next.adjustments=remote.adjustments||{};
+next.supplements=remote.supplements||{};
+if(remote.season)next.season=remote.season;
+if(remote.pastureMode)next.pastureMode=remote.pastureMode;
+const hasRemoteWinterForages=Array.isArray(remote.winterForages);
+const hasRemoteWinterForage=typeof remote.winterForage==='string';
+if(hasRemoteWinterForages)next.winterForages=remote.winterForages;
+else if(hasRemoteWinterForage)next.winterForages=[remote.winterForage];
+if(Object.prototype.hasOwnProperty.call(remote,'winterForageRatios'))next.winterForageRatios=remote.winterForageRatios||{};
+else if(hasRemoteWinterForage||hasRemoteWinterForages)delete next.winterForageRatios;
+next._ts=remote._ts||0;
+return next;
+}
+// ── End Cloud Sync Pure Helpers ──
+
+function applyRemoteSnapshot(remote){
+state=normalizeState(stateFromCloud(state,remote));
+localStorage.setItem('hfc_state',JSON.stringify(state));
+}
 
 function initFirebaseSync(){
 if(!householdId)return;
@@ -195,21 +233,7 @@ if(!remote)return;
 const remoteTs=remote._ts||0;
 const localTs=state._ts||0;
 if(remoteTs>localTs){
-// Remote is newer — merge
-if(remote.adjustments)state.adjustments=remote.adjustments;
-if(remote.supplements)state.supplements=remote.supplements;
-if(remote.horses)state.horses=remote.horses;
-if(remote.season)state.season=remote.season;
-if(remote.pastureMode)state.pastureMode=remote.pastureMode;
-const hasRemoteWinterForages=Array.isArray(remote.winterForages);
-const hasRemoteWinterForage=typeof remote.winterForage==='string';
-if(hasRemoteWinterForages)state.winterForages=remote.winterForages;
-else if(hasRemoteWinterForage)state.winterForages=[remote.winterForage];
-if(Object.prototype.hasOwnProperty.call(remote,'winterForageRatios'))state.winterForageRatios=remote.winterForageRatios;
-else if(hasRemoteWinterForage||hasRemoteWinterForages)delete state.winterForageRatios;
-state._ts=remoteTs;
-normalizeState(state);
-localStorage.setItem('hfc_state',JSON.stringify(state));
+applyRemoteSnapshot(remote);
 render();
 }
 });
@@ -221,27 +245,63 @@ if(typeof renderSettings==='function'&&selectedTab==='settings')renderSettings()
 }
 
 function pushToFirebase(){
-if(!fbRef||syncPaused)return;
+if(!fbRef||syncPaused)return Promise.resolve(false);
 state._ts=Date.now();
 syncPaused=true;
-fbRef.set({
-horses:state.horses,
-adjustments:state.adjustments||{},
-supplements:state.supplements||{},
-season:state.season,
-pastureMode:state.pastureMode||'short',
-winterForages:state.winterForages||[state.winterForage||'teff_pellets'],
-winterForageRatios:state.winterForageRatios||{},
-_ts:state._ts
-}).then(()=>{syncPaused=false}).catch(()=>{syncPaused=false});
+return fbRef.set(cloudStatePayload(state,state._ts))
+.then(()=>{syncPaused=false;return true})
+.catch(()=>{syncPaused=false;return false});
 }
 
-function setHousehold(id){
+async function joinExistingHousehold(id){
+id=(id||'').trim();
+if(!id||syncBusy)return;
+if(!confirm('Join '+id+'?\n\nThe cloud household will replace this device\'s local horse, feed, and supplement settings.'))return;
+syncBusy=true;
+try{
+const ref=fbDb.ref('households/'+id);
+const snap=await ref.once('value');
+if(!snap.exists()){
+alert('Household not found. Check the Cloud Sync Code and try again.');
+return;
+}
 if(fbRef)fbRef.off();
+applyRemoteSnapshot(snap.val());
 householdId=id;
 localStorage.setItem('hfc_household',id);
 initFirebaseSync();
-pushToFirebase();
+render();
+alert('Joined '+id+'. Cloud data is now loaded on this device.');
+}catch(e){
+alert('Could not join this household. Check your connection and try again.');
+}finally{syncBusy=false}
+}
+
+async function createNewHousehold(){
+if(syncBusy)return;
+syncBusy=true;
+try{
+for(let attempt=0;attempt<5;attempt++){
+const id=generateHouseholdId();
+const ref=fbDb.ref('households/'+id);
+state._ts=Date.now();
+const payload=cloudStatePayload(state,state._ts);
+const result=await ref.transaction(current=>current===null?payload:undefined);
+if(!result.committed)continue;
+if(fbRef)fbRef.off();
+householdId=id;
+fbRef=ref;
+localStorage.setItem('hfc_household',id);
+localStorage.setItem('hfc_state',JSON.stringify(state));
+initFirebaseSync();
+render();
+alert('Cloud household created. Share the Household ID only with people who should access this barn.');
+return;
+}
+alert('Could not create a unique Household ID. Please try again.');
+}catch(e){
+alert('Could not create the cloud household. Check your connection and try again.');
+}finally{syncBusy=false}
 }
 
 function generateHouseholdId(){
@@ -1108,10 +1168,10 @@ html+=`<div class="form-group"><label>Household ID</label><div style="display:fl
 html+='<div style="font-size:12px;color:var(--text-light);margin-bottom:12px">Share this ID with other devices to sync. Open Settings on the other device and enter the same ID.</div>';
 html+='<button class="btn btn-outline btn-sm" onclick="if(confirm(\'Disconnect from cloud sync?\')){{localStorage.removeItem(\'hfc_household\');householdId=null;if(fbRef)fbRef.off();fbRef=null;renderSettings()}}">Disconnect</button>';
 }else{
-html+='<div style="font-size:13px;margin-bottom:12px">Sync your feed adjustments and supplement settings across all your devices.</div>';
-html+='<div class="form-group"><label>Join existing household</label><div style="display:flex;gap:8px"><input id="hh_join_input" placeholder="e.g. tenor-saga-4821" style="flex:1"><button class="btn btn-accent btn-sm" onclick="const v=document.getElementById(\'hh_join_input\').value.trim();if(v){setHousehold(v);renderSettings()}">Join</button></div></div>';
+html+='<div style="font-size:13px;margin-bottom:12px">Sync horses, feed adjustments, and supplement settings across all your devices.</div>';
+html+='<div class="form-group"><label>Join existing household</label><div style="display:flex;gap:8px"><input id="hh_join_input" placeholder="e.g. tenor-saga-4821" style="flex:1"><button class="btn btn-accent btn-sm" onclick="joinExistingHousehold(document.getElementById(\'hh_join_input\').value)">Join</button></div></div>';
 html+='<div style="text-align:center;font-size:12px;color:var(--text-light);margin:8px 0">— or —</div>';
-html+=`<button class="btn btn-primary btn-block" onclick="setHousehold(generateHouseholdId());renderSettings()">🆕 Create New Household</button>`;
+html+=`<button class="btn btn-primary btn-block" onclick="createNewHousehold()">🆕 Create New Household</button>`;
 }
 html+='</div>';
 html+='<div class="card"><button class="btn btn-danger btn-block" onclick="resetDefaults()">🔄 Reset All to Defaults</button></div>';
