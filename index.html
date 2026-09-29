@@ -252,7 +252,7 @@ return a+'-'+b+'-'+Math.floor(Math.random()*9000+1000);
 // ── Data Defaults ──
 const FEED_TYPES=[
 {id:'pasture',name:'Short-Grazed Pasture',unit:'risk',isPasture:true},
-{id:'lmf_low_nsc_complete',name:'LMF Low NSC Complete',unit:'lb',horseIds:['tenor']},
+{id:'lmf_senior_low_carb',name:'LMF Senior Low Carb',unit:'lb',horseIds:['tenor']},
 {id:'teff_pellets',name:'Teff Grass Pellets',unit:'lb'},
 {id:'grass_hay',name:'Grass Hay',unit:'lb'},
 {id:'alfalfa_forage',name:'Alfalfa Hay/Pellets',unit:'lb'}
@@ -360,6 +360,14 @@ return amounts;
 }
 // ── End Winter Fiber Pure Helpers ──
 
+// ── Feed Plan Pure Helpers ──
+function getTenorSeniorLowCarbRange(h){
+const rates={light:[0.015,0.017],moderate:[0.016,0.018],heavy:[0.018,0.020]};
+const range=rates[h.activity]||rates.moderate;
+return range.map(rate=>Math.round(h.weight*rate*10)/10);
+}
+// ── End Feed Plan Pure Helpers ──
+
 // ── State ──
 let state=loadState();
 let selectedHorse=0;
@@ -431,6 +439,7 @@ pushToFirebase();
 // ── Recommendation Engine ──
 function getTargetRange(h){
 const w=h.weight;
+if(h.id==='tenor')return getTenorSeniorLowCarbRange(h);
 const hasIR=h.conditions.includes('ir');
 const hasOW=h.conditions.includes('overweight');
 if(hasIR||hasOW)return[w*0.012,w*0.015];
@@ -480,23 +489,25 @@ function recommend(h){
 const[lo,hi]=getTargetRange(h);
 const mid=(lo+hi)/2;
 const c=h.conditions;
-const hasPSSM=c.includes('pssm');const hasTeeth=c.includes('teeth');
 const hasIR=c.includes('ir');const hasOW=c.includes('overweight');
-const hasDig=c.includes('digestive');const isSenior=c.includes('senior');
+const hasDig=c.includes('digestive');
+const isTenor=h.id==='tenor';
 const pasture=getPasturePlan(h);
 
-let r={pasture:pasture.credit,lmf_low_nsc_complete:0,teff_pellets:0,grass_hay:0,alfalfa_forage:0};
+let r={pasture:pasture.credit,lmf_senior_low_carb:0,teff_pellets:0,grass_hay:0,alfalfa_forage:0};
 let notes=[];
 notes.push(pasture.note);
 
-// Tenor-like: senior+teeth+pssm
-if(isSenior&&hasTeeth&&hasPSSM){
-// LMF Low NSC Complete can serve as a complete low-sugar soaked mash for Tenor.
-r.lmf_low_nsc_complete=+mid.toFixed(1);
-notes.push('⚠️ PSSM: Keep starch/sugar low. LMF Low NSC Complete is listed by LMF as max 6% sugar and max 2% starch.');
-notes.push('🦷 Teeth: feed as a well-soaked mash; keep long-stem hay/pasture intake conservative if chewing is unreliable.');
+// Tenor only: Senior Low Carb complete ration.
+if(isTenor){
+// LMF Senior Low Carb is Tenor's complete low-sugar senior ration.
+r.lmf_senior_low_carb=+mid.toFixed(1);
+notes.push('⚠️ PSSM: Keep starch/sugar low. LMF Senior Low Carb is listed by LMF as max 6% sugar and max 2% starch.');
+notes.push('⚖️ Weight maintenance start: '+mid.toFixed(1)+' lb/day (label range '+lo.toFixed(1)+'–'+hi.toFixed(1)+' lb for '+h.activity+' work). Recheck body condition and weight regularly.');
+notes.push('🦷 Teeth: LMF recommends soaking Senior Low Carb for 20 minutes for horses with chewing difficulties. Add enough water to fully submerge the feed.');
+notes.push('🌾 The label also calls for 2–3 lb/day of long-stem hay. Confirm a safely chewable forage form with the vet/dentist if Tenor cannot manage long-stem hay.');
 notes.push('🍽️ Split into 3-4 smaller meals throughout the day');
-if(c.includes('hoof'))notes.push('🐴 Hoof/metabolic support: watch total minerals when combining AminoTrace+ and Remission.');
+if(c.includes('hoof'))notes.push('🐴 LMF is fully fortified. Review AminoTrace+ and Remission with the vet/nutritionist before combining them at full doses.');
 }
 // IR/overweight (Spoi-like)
 else if(hasIR||hasOW){

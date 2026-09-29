@@ -2,6 +2,6 @@
   "name": "icelandic-horse-feed-calculator",
   "private": true,
   "scripts": {
-    "test": "node --test tests/winter-forage.test.js"
+    "test": "node --test tests/*.test.js"
   }
 }
